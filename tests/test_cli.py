@@ -10,6 +10,7 @@ def test_main_without_args_prints_placeholder(capsys):
     output = capsys.readouterr().out
     assert "bible-reader is installed" in output
     assert "bible --help" in output
+    assert "bible books" in output
 
 
 def test_help_output(capsys):
@@ -31,3 +32,12 @@ def test_version_output(capsys):
 
     output = capsys.readouterr().out.strip()
     assert output == f"bible {__version__}"
+
+
+def test_books_command_lists_sample_fixture_books(capsys):
+    assert main(["books"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Books available in the ASV sample fixture" in output
+    assert "John" in output
+    assert "Romans" in output

@@ -25,7 +25,12 @@ After editable install, the console command is available:
 ```bash
 bible --help
 bible --version
+bible books
 ```
+
+## Current development fixture
+
+Stage 2 uses a tiny in-memory ASV fixture to prove the SQLite schema and repository layer before importing a full Bible text. The fixture currently includes John 3:16-17 and Romans 8:28-30.
 
 ## Planning documents
 

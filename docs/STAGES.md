@@ -175,3 +175,8 @@ Deliverables:
 - install/update docs
 - smoke-test checklist
 - versioning guidance
+
+
+## Stage 2 implementation note
+
+Stage 2 proves the SQLite schema and repository layer with a tiny in-memory ASV fixture. The full ASV import is intentionally deferred until lookup, formatting, and validation behavior are stable.
