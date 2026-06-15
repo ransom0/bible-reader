@@ -52,6 +52,36 @@ class BibleRepository:
             for row in rows
         ]
 
+
+    def list_chapters(self, *, book_name: str) -> list[int]:
+        """Return chapter numbers available for a book in canonical order."""
+        rows = self._connection.execute(
+            """
+            SELECT DISTINCT v.chapter
+            FROM verses AS v
+            JOIN books AS b ON b.id = v.book_id
+            WHERE b.name = ?
+            ORDER BY v.chapter
+            """,
+            (book_name,),
+        ).fetchall()
+        return [int(row["chapter"]) for row in rows]
+
+    def chapter_exists(self, *, book_name: str, chapter: int) -> bool:
+        """Return True when at least one verse exists for a chapter."""
+        row = self._connection.execute(
+            """
+            SELECT 1
+            FROM verses AS v
+            JOIN books AS b ON b.id = v.book_id
+            WHERE b.name = ?
+              AND v.chapter = ?
+            LIMIT 1
+            """,
+            (book_name, chapter),
+        ).fetchone()
+        return row is not None
+
     def get_verse(
         self,
         *,

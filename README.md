@@ -29,6 +29,8 @@ bible books
 bible John 3:16
 bible read John 3
 bible search shepherd
+bible chapters John
+bible chapters Ps
 bible --no-color Ps 23
 bible import-bundle tests/fixtures/asv_sample_bundle.json --db /tmp/bible.sqlite3
 bible --db /tmp/bible.sqlite3 John 3:16

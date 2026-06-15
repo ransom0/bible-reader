@@ -215,3 +215,8 @@ text/XML, and normal reading remains offline after import.
 ## Stage 7 status
 
 Adds simple safe SQLite-backed phrase search with result formatting, book limiting, and result limits. This remains intentionally passage-aware and reference-first rather than topical proof-text generation.
+
+
+## Stage 8 status
+
+Adds `bible chapters <book>` as the first navigation helper beyond the existing `books` command. This keeps navigation reference-first and context-aware: users can inspect available chapters for a canonical book or common alias before reading/searching.

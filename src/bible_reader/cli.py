@@ -20,7 +20,7 @@ from .storage import connect_database, create_sample_connection, initialize_data
 
 PROGRAM_NAME = "bible"
 DEFAULT_TRANSLATION = "ASV"
-KNOWN_COMMANDS = {"books", "read", "search", "import-bundle", "import-usfx"}
+KNOWN_COMMANDS = {"books", "chapters", "read", "search", "import-bundle", "import-usfx"}
 THEMES = {"classic", "plain"}
 
 
@@ -69,6 +69,14 @@ def build_parser() -> argparse.ArgumentParser:
         description="List books available in the current database.",
     )
     books_parser.set_defaults(func=show_books)
+
+    chapters_parser = subparsers.add_parser(
+        "chapters",
+        help="list chapters available for a book",
+        description="List chapters available for a book in the current database.",
+    )
+    chapters_parser.add_argument("book", nargs="+", help="book name or abbreviation, such as 'John' or 'Ps'")
+    chapters_parser.set_defaults(func=show_chapters)
 
     read_parser = subparsers.add_parser(
         "read",
@@ -120,6 +128,7 @@ def show_placeholder(_args: argparse.Namespace) -> int:
     print("Try: bible John 3:16")
     print("Try: bible read John 3")
     print("Try: bible search shepherd")
+    print("Try: bible chapters John")
     print("Try: bible import-usfx SOURCE.usfx --db bible.sqlite3")
     return 0
 
@@ -138,6 +147,35 @@ def show_books(args: argparse.Namespace) -> int:
             print(f"{book.order:>2}. {book.name}")
     finally:
         connection.close()
+    return 0
+
+
+def show_chapters(args: argparse.Namespace) -> int:
+    """Print chapters available for a book from the selected database."""
+    options = getattr(args, "render_options", RenderOptions())
+    raw_book = " ".join(args.book)
+    try:
+        from .references import normalize_book_name
+
+        book_name = normalize_book_name(raw_book)
+    except ReferenceParseError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+
+    connection = _open_read_connection(options.db_path)
+    try:
+        repository = BibleRepository(connection)
+        chapters = repository.list_chapters(book_name=book_name)
+    finally:
+        connection.close()
+
+    if not chapters:
+        location = "selected database" if options.db_path is not None else "ASV sample fixture"
+        print(f"Book not found in the {location}: {book_name}", file=sys.stderr)
+        return 1
+
+    chapter_text = ", ".join(str(chapter) for chapter in chapters)
+    print(f"{book_name} chapters: {chapter_text}")
     return 0
 
 

@@ -112,3 +112,24 @@ def test_repository_preserves_paragraph_and_poetry_formatting_metadata():
     assert verses[0].paragraph_break_before is True
     assert "\nI shall not want." in verses[0].text
     assert verses[1].paragraph_break_before is False
+
+
+def test_repository_lists_chapters_for_book():
+    connection = create_sample_connection()
+    try:
+        repository = BibleRepository(connection)
+        chapters = repository.list_chapters(book_name="Psalms")
+    finally:
+        connection.close()
+
+    assert chapters == [23]
+
+
+def test_repository_reports_whether_chapter_exists():
+    connection = create_sample_connection()
+    try:
+        repository = BibleRepository(connection)
+        assert repository.chapter_exists(book_name="John", chapter=3) is True
+        assert repository.chapter_exists(book_name="John", chapter=4) is False
+    finally:
+        connection.close()

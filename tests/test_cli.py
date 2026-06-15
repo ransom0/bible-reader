@@ -13,6 +13,7 @@ def test_main_without_args_prints_placeholder(capsys):
     assert "bible John 3:16" in output
     assert "bible read John 3" in output
     assert "bible search shepherd" in output
+    assert "bible chapters John" in output
 
 
 def test_help_output(capsys):
@@ -178,3 +179,25 @@ def test_search_command_rejects_bad_limit(capsys):
 
     error = capsys.readouterr().err
     assert "--limit must be 1 or greater" in error
+
+
+def test_chapters_command_lists_available_chapters(capsys):
+    assert main(["chapters", "John"]) == 0
+
+    output = capsys.readouterr().out
+    assert output.strip() == "John chapters: 3"
+
+
+def test_chapters_command_accepts_book_alias(capsys):
+    assert main(["chapters", "Ps"]) == 0
+
+    output = capsys.readouterr().out
+    assert output.strip() == "Psalms chapters: 23"
+
+
+def test_chapters_command_returns_one_for_missing_book(capsys):
+    assert main(["chapters", "Genesis"]) == 1
+
+    error = capsys.readouterr().err
+    assert "Book not found" in error
+    assert "Genesis" in error
