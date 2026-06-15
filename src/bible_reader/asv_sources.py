@@ -95,6 +95,7 @@ CANONICAL_BOOKS: tuple[tuple[str, int, str, str, int], ...] = (
 
 BOOK_BY_USFM = {code: (book_id, name, testament, order) for code, book_id, name, testament, order in CANONICAL_BOOKS}
 IGNORED_USFX_BOOK_CODES = {"FRT", "INT", "BAK", "OTH", "GLO", "TDX", "NDX", "XXA"}
+POETRY_BOOKS = {"Job", "Psalms", "Proverbs", "Song of Solomon", "Lamentations"}
 
 
 def asv_book_records() -> list[dict[str, Any]]:
@@ -278,6 +279,7 @@ class _UsfxState:
         if self.current_verse is None:
             return
         text = _joined_text(self.current_text)
+        text = _apply_poetry_line_breaks(self.current_book, text)
         if not text:
             # Some source files contain verse markers for omitted textual-tradition
             # verses. Do not import a blank verse record; keep validation strict
@@ -332,6 +334,20 @@ def _walk_usfx(element: ET.Element, state: _UsfxState) -> None:
 def _joined_text(parts: list[str]) -> str:
     lines = [_normalize_verse_line(line) for line in "".join(parts).splitlines()]
     return "\n".join(line for line in lines if line).strip()
+
+
+def _apply_poetry_line_breaks(book: str | None, text: str) -> str:
+    """Add conservative line breaks for imported Hebrew poetry.
+
+    Some eBible ASV USFX poetry lines arrive as one XML paragraph with a
+    semicolon separating the poetic cola instead of explicit ``q`` line tags.
+    The renderer already honors embedded newlines, so add a cautious break for
+    poetry books only and only when the source did not already provide line
+    breaks.
+    """
+    if book not in POETRY_BOOKS or "\n" in text:
+        return text
+    return re.sub(r";\s+", ";\n", text)
 
 
 def _normalize_verse_line(line: str) -> str:

@@ -155,3 +155,41 @@ def test_convert_asv_source_normalizes_punctuation_spacing(tmp_path: Path):
 
     assert bundle["verses"][0]["text"] == "In the beginning God created the heavens and the earth."
     assert bundle["verses"][1]["text"] == "For God so loved the world, that he gave."
+
+
+def test_convert_asv_source_adds_conservative_poetry_breaks(tmp_path: Path):
+    source = tmp_path / "poetry-breaks.usfx"
+    source.write_text(
+        """<usfx>
+        <book id="PSA"><c id="23" />
+            <p><v id="1" />Jehovah is my shepherd; I shall not want.</p>
+        </book>
+        <book id="JHN"><c id="3" />
+            <p><v id="16" />For God so loved the world, that he gave.</p>
+        </book>
+        </usfx>""",
+        encoding="utf-8",
+    )
+
+    bundle = convert_asv_source_to_bundle(source)
+
+    psalm = next(verse for verse in bundle["verses"] if verse["book"] == "Psalms")
+    john = next(verse for verse in bundle["verses"] if verse["book"] == "John")
+    assert psalm["text"] == "Jehovah is my shepherd;\nI shall not want."
+    assert john["text"] == "For God so loved the world, that he gave."
+
+
+def test_convert_asv_source_keeps_existing_poetry_line_breaks(tmp_path: Path):
+    source = tmp_path / "existing-poetry-breaks.usfx"
+    source.write_text(
+        """<usfx>
+        <book id="PSA"><c id="23" />
+            <p><v id="1" />Jehovah is my shepherd;<q>I shall not want.</q></p>
+        </book>
+        </usfx>""",
+        encoding="utf-8",
+    )
+
+    bundle = convert_asv_source_to_bundle(source)
+
+    assert bundle["verses"][0]["text"] == "Jehovah is my shepherd;\nI shall not want."
