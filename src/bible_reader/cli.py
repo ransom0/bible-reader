@@ -17,11 +17,12 @@ from .render import ComparisonRenderer, PassageRenderer, SearchRenderer
 from .repository import BibleRepository
 from .storage import connect_database, create_sample_connection, initialize_database
 from .study import StudyStore, StudyStoreError, default_study_path
+from .tui import render_tui_plan
 
 
 PROGRAM_NAME = "bible"
 DEFAULT_TRANSLATION = "ASV"
-KNOWN_COMMANDS = {"books", "chapters", "read", "search", "compare", "bookmark", "bookmarks", "note", "notes", "import-bundle", "import-usfx"}
+KNOWN_COMMANDS = {"books", "chapters", "read", "search", "compare", "tui", "bookmark", "bookmarks", "note", "notes", "import-bundle", "import-usfx"}
 THEMES = {"classic", "plain"}
 
 
@@ -120,6 +121,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     compare_parser.set_defaults(func=compare_command)
 
+    tui_parser = subparsers.add_parser(
+        "tui",
+        help="show the planned terminal UI foundation",
+        description="Show the planned terminal UI foundation before the interactive TUI is implemented.",
+    )
+    tui_parser.set_defaults(func=tui_plan_command)
+
+
 
     bookmark_parser = subparsers.add_parser(
         "bookmark",
@@ -199,11 +208,19 @@ def show_placeholder(_args: argparse.Namespace) -> int:
     print("Try: bible read John 3")
     print("Try: bible search shepherd")
     print("Try: bible compare John 3:16")
+    print("Try: bible tui")
     print("Try: bible chapters John")
     print("Try: bible bookmark add John 3:16")
     print("Try: bible note add John 3:16 \"study note\"")
     print("Try: bible import-usfx SOURCE.usfx --db bible.sqlite3")
     return 0
+
+
+def tui_plan_command(_args: argparse.Namespace) -> int:
+    """Print the TUI foundation plan without launching an unfinished interface."""
+    print(render_tui_plan())
+    return 0
+
 
 
 def show_books(args: argparse.Namespace) -> int:

@@ -252,3 +252,14 @@ def test_study_option_requires_value(capsys):
 
     error = capsys.readouterr().err
     assert "--study requires a value" in error
+
+
+def test_tui_command_shows_planning_placeholder(capsys):
+    assert main(["tui"]) == 0
+
+    output = capsys.readouterr().out
+    assert "bible tui (planned)" in output
+    assert "Reading pane" in output
+    assert "Comparison pane" in output
+    assert "interactive TUI is not implemented yet" in output
+

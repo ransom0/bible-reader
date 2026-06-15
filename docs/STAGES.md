@@ -234,3 +234,8 @@ first CLI comparison view favors narrow-terminal readability and testability ove
 side-by-side layout. The SQLite model already supports multiple translation codes,
 so this stage proves comparison behavior with the sample ASV fixture and an
 additional test translation bundle.
+
+
+## Stage 11 implementation note
+
+Stage 11 records the TUI foundation without adding an interactive dependency yet. The `bible tui` command prints the planned pane layout and design rules so the future Textual-style interface remains tied to the tested CLI/service/repository/render layers.

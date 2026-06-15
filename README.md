@@ -31,6 +31,7 @@ bible read John 3
 bible search shepherd
 bible compare John 3:16
 bible compare Romans 8:28-30 --versions ASV
+bible tui
 bible chapters John
 bible chapters Ps
 bible --no-color Ps 23
@@ -51,6 +52,7 @@ The app currently uses a tiny in-memory ASV fixture by default to prove the SQLi
 - `PROJECT_SPEC.md`
 - `docs/STAGES.md`
 - `docs/WORKFLOW.md`
+- `docs/TUI_PLAN.md`
 
 ## Data sources
 
