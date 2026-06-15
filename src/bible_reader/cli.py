@@ -22,7 +22,7 @@ from .tui import render_tui_plan
 
 PROGRAM_NAME = "bible"
 DEFAULT_TRANSLATION = "ASV"
-KNOWN_COMMANDS = {"books", "chapters", "read", "search", "compare", "tui", "bookmark", "bookmarks", "note", "notes", "import-bundle", "import-usfx"}
+KNOWN_COMMANDS = {"books", "chapters", "read", "search", "compare", "tui", "doctor", "bookmark", "bookmarks", "note", "notes", "import-bundle", "import-usfx"}
 THEMES = {"classic", "plain"}
 
 
@@ -129,6 +129,13 @@ def build_parser() -> argparse.ArgumentParser:
     tui_parser.set_defaults(func=tui_plan_command)
 
 
+    doctor_parser = subparsers.add_parser(
+        "doctor",
+        help="show install and runtime diagnostics",
+        description="Show install, runtime, and local data diagnostics for release smoke tests.",
+    )
+    doctor_parser.set_defaults(func=doctor_command)
+
 
     bookmark_parser = subparsers.add_parser(
         "bookmark",
@@ -208,6 +215,7 @@ def show_placeholder(_args: argparse.Namespace) -> int:
     print("Try: bible read John 3")
     print("Try: bible search shepherd")
     print("Try: bible compare John 3:16")
+    print("Try: bible doctor")
     print("Try: bible tui")
     print("Try: bible chapters John")
     print("Try: bible bookmark add John 3:16")
@@ -222,6 +230,22 @@ def tui_plan_command(_args: argparse.Namespace) -> int:
     return 0
 
 
+
+
+def doctor_command(args: argparse.Namespace) -> int:
+    """Print lightweight runtime diagnostics for install checks."""
+    options = getattr(args, "render_options", RenderOptions())
+    db_label = str(options.db_path) if options.db_path is not None else "sample fixture"
+    study_label = str(options.study_path or default_study_path())
+    print("bible-reader doctor")
+    print(f"version: {__version__}")
+    print(f"command: {PROGRAM_NAME}")
+    print(f"database: {db_label}")
+    print(f"study file: {study_label}")
+    print(f"theme: {options.theme}")
+    print(f"color: {'on' if options.color else 'off'}")
+    print("status: ok")
+    return 0
 
 def show_books(args: argparse.Namespace) -> int:
     """Print books from the selected database."""

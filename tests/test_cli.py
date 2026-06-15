@@ -13,6 +13,7 @@ def test_main_without_args_prints_placeholder(capsys):
     assert "bible John 3:16" in output
     assert "bible read John 3" in output
     assert "bible search shepherd" in output
+    assert "bible doctor" in output
     assert "bible chapters John" in output
     assert "bible bookmark add John 3:16" in output
     assert "bible note add John 3:16" in output
@@ -38,6 +39,29 @@ def test_version_output(capsys):
     output = capsys.readouterr().out.strip()
     assert output == f"bible {__version__}"
 
+
+
+def test_doctor_command_reports_runtime_status(capsys):
+    assert main(["doctor"]) == 0
+
+    output = capsys.readouterr().out
+    assert "bible-reader doctor" in output
+    assert f"version: {__version__}" in output
+    assert "database: sample fixture" in output
+    assert "status: ok" in output
+
+
+def test_doctor_command_respects_runtime_options(tmp_path, capsys):
+    db_path = tmp_path / "bible.sqlite3"
+    study_path = tmp_path / "study.json"
+
+    assert main(["--no-color", "--theme", "plain", "--db", str(db_path), "--study", str(study_path), "doctor"]) == 0
+
+    output = capsys.readouterr().out
+    assert f"database: {db_path}" in output
+    assert f"study file: {study_path}" in output
+    assert "theme: plain" in output
+    assert "color: off" in output
 
 def test_books_command_lists_sample_fixture_books(capsys):
     assert main(["books"]) == 0

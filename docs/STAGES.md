@@ -166,19 +166,9 @@ Deliverables:
 - search/navigation pane if feasible
 - groundwork for split-screen comparison
 
-## Stage 12 — Commentary and public-domain sources
+## Stage 12 — Release/install/docs polish
 
-Add non-Scripture corpora carefully.
-
-Deliverables:
-
-- source/corpus metadata
-- public-domain commentary/fathers import path
-- verse/passage linking without flattening everything into topical proof-texts
-
-## Stage 13 — Release/install/docs polish
-
-Prepare for GitHub sharing and pipx installation.
+Prepare the project for GitHub sharing, pipx installation, and repeatable smoke testing.
 
 Deliverables:
 
@@ -187,6 +177,17 @@ Deliverables:
 - install/update docs
 - smoke-test checklist
 - versioning guidance
+- lightweight doctor command
+
+## Stage 13 — Commentary and public-domain sources
+
+Add non-Scripture corpora carefully.
+
+Deliverables:
+
+- source/corpus metadata
+- public-domain commentary/fathers import path
+- verse/passage linking without flattening everything into topical proof-texts
 
 
 ## Stage 2 implementation note
@@ -239,3 +240,8 @@ additional test translation bundle.
 ## Stage 11 implementation note
 
 Stage 11 records the TUI foundation without adding an interactive dependency yet. The `bible tui` command prints the planned pane layout and design rules so the future Textual-style interface remains tied to the tested CLI/service/repository/render layers.
+
+
+## Stage 12 status
+
+Adds release documentation and a lightweight `bible doctor` command for smoke tests. The project remains pre-alpha and intentionally uses explicit local data paths for imports and study data.

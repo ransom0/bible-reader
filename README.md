@@ -31,6 +31,7 @@ bible read John 3
 bible search shepherd
 bible compare John 3:16
 bible compare Romans 8:28-30 --versions ASV
+bible doctor
 bible tui
 bible chapters John
 bible chapters Ps
@@ -53,8 +54,33 @@ The app currently uses a tiny in-memory ASV fixture by default to prove the SQLi
 - `docs/STAGES.md`
 - `docs/WORKFLOW.md`
 - `docs/TUI_PLAN.md`
+- `docs/INSTALL.md`
+- `docs/SMOKE_TEST.md`
+- `docs/VERSIONING.md`
+- `CHANGELOG.md`
 
 ## Data sources
 
 See `docs/DATA_SOURCES.md` for translation import policy and the current ASV import bundle shape.
 
+## Install preview
+
+Development install:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e . pytest
+python -m pytest
+bible doctor
+```
+
+Future pipx/GitHub install:
+
+```bash
+pipx install git+ssh://git@github.com/ransom0/bible-reader.git
+bible doctor
+```
+
+See `docs/INSTALL.md` and `docs/SMOKE_TEST.md` for fuller release checks.
