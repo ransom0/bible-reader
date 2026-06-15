@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sqlite3
 from collections.abc import Iterable
 from pathlib import Path
@@ -65,6 +66,19 @@ SAMPLE_VERSES = (
     ("ASV", 45, 8, 30, "and whom he foreordained, them he also called: and whom he called, them he also justified: and whom he justified, them he also glorified.", 0),
 )
 
+
+
+def default_data_dir() -> Path:
+    """Return the XDG-compatible data directory used by bible-reader."""
+    base = os.environ.get("XDG_DATA_HOME")
+    if base:
+        return Path(base).expanduser() / "bible-reader"
+    return Path.home() / ".local" / "share" / "bible-reader"
+
+
+def default_database_path() -> Path:
+    """Return the default local SQLite database path."""
+    return default_data_dir() / "bible-reader.sqlite3"
 
 def connect_database(path: str | Path = ":memory:") -> sqlite3.Connection:
     """Open a SQLite connection configured for this app."""

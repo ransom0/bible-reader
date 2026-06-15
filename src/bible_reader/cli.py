@@ -10,19 +10,20 @@ import sys
 
 from . import __version__
 from .asv_sources import convert_usfx_asv_to_bundle
+from .default_data import initialize_default_database
 from .importers import ImportErrorDetail, import_translation_bundle, import_translation_bundle_file
 from .models import Verse
 from .references import BibleReference, ReferenceParseError, parse_reference
 from .render import ComparisonRenderer, PassageRenderer, SearchRenderer
 from .repository import BibleRepository
-from .storage import connect_database, create_sample_connection, initialize_database
+from .storage import connect_database, create_sample_connection, default_database_path, initialize_database
 from .study import StudyStore, StudyStoreError, default_study_path
 from .tui import render_tui_plan
 
 
 PROGRAM_NAME = "bible"
 DEFAULT_TRANSLATION = "ASV"
-KNOWN_COMMANDS = {"books", "chapters", "read", "search", "compare", "tui", "doctor", "bookmark", "bookmarks", "note", "notes", "import-bundle", "import-usfx"}
+KNOWN_COMMANDS = {"books", "chapters", "read", "search", "compare", "tui", "doctor", "bookmark", "bookmarks", "note", "notes", "init-db", "import-bundle", "import-usfx"}
 THEMES = {"classic", "plain"}
 
 
@@ -203,6 +204,22 @@ def build_parser() -> argparse.ArgumentParser:
     import_usfx_parser.add_argument("source", help="path to a local ASV USFX XML source file")
     import_usfx_parser.set_defaults(func=import_usfx_command)
 
+    init_db_parser = subparsers.add_parser(
+        "init-db",
+        help="create the default local Bible database",
+        description="Create the default local SQLite Bible database from packaged sample data or a bundle.",
+    )
+    init_db_parser.add_argument(
+        "--source",
+        help="optional normalized translation bundle JSON file to import instead of packaged sample data",
+    )
+    init_db_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="replace the target database if it already exists",
+    )
+    init_db_parser.set_defaults(func=init_db_command)
+
     parser.set_defaults(func=show_placeholder)
     return parser
 
@@ -220,6 +237,7 @@ def show_placeholder(_args: argparse.Namespace) -> int:
     print("Try: bible chapters John")
     print("Try: bible bookmark add John 3:16")
     print("Try: bible note add John 3:16 \"study note\"")
+    print("Try: bible init-db")
     print("Try: bible import-usfx SOURCE.usfx --db bible.sqlite3")
     return 0
 
@@ -235,7 +253,13 @@ def tui_plan_command(_args: argparse.Namespace) -> int:
 def doctor_command(args: argparse.Namespace) -> int:
     """Print lightweight runtime diagnostics for install checks."""
     options = getattr(args, "render_options", RenderOptions())
-    db_label = str(options.db_path) if options.db_path is not None else "sample fixture"
+    default_db = default_database_path()
+    if options.db_path is not None:
+        db_label = str(options.db_path)
+    elif default_db.exists():
+        db_label = f"{default_db} (default local database)"
+    else:
+        db_label = f"sample fixture; default database not initialized at {default_db}"
     study_label = str(options.study_path or default_study_path())
     print("bible-reader doctor")
     print(f"version: {__version__}")
@@ -307,6 +331,11 @@ def render_verses(
 
 def _open_read_connection(db_path: Path | None):
     if db_path is None:
+        default_db = default_database_path()
+        if default_db.exists():
+            connection = connect_database(default_db)
+            initialize_database(connection)
+            return connection
         return create_sample_connection()
     connection = connect_database(db_path)
     initialize_database(connection)
@@ -575,6 +604,27 @@ def note_list_command(args: argparse.Namespace) -> int:
         print(f"{index:>2}. {note.reference} — {note.text}")
     return 0
 
+
+
+def init_db_command(args: argparse.Namespace) -> int:
+    """Create the default or selected local Bible database."""
+    options = getattr(args, "render_options", RenderOptions())
+    target = options.db_path or default_database_path()
+    try:
+        created_path = initialize_default_database(
+            db_path=target,
+            source_path=args.source,
+            force=args.force,
+        )
+    except ImportErrorDetail as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+
+    if args.source:
+        print(f"Initialized Bible database from {args.source}: {created_path}")
+    else:
+        print(f"Initialized Bible database from packaged ASV sample data: {created_path}")
+    return 0
 
 def import_bundle_command(args: argparse.Namespace) -> int:
     """Import a normalized translation bundle into SQLite."""

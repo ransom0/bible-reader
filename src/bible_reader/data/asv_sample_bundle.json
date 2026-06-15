@@ -1,0 +1,78 @@
+{
+  "translation": {
+    "code": "ASV",
+    "name": "American Standard Version",
+    "language": "en",
+    "copyright": "Public domain: ASV 1901"
+  },
+  "books": [
+    {"id": 19, "name": "Psalms", "testament": "OT", "order": 19},
+    {"id": 43, "name": "John", "testament": "NT", "order": 43},
+    {"id": 45, "name": "Romans", "testament": "NT", "order": 45}
+  ],
+  "verses": [
+    {
+      "book": "Psalms",
+      "chapter": 23,
+      "verse": 1,
+      "text": "Jehovah is my shepherd;\nI shall not want.",
+      "paragraph_break_before": true
+    },
+    {
+      "book": "Psalms",
+      "chapter": 23,
+      "verse": 2,
+      "text": "He maketh me to lie down in green pastures;\nHe leadeth me beside still waters.",
+      "paragraph_break_before": false
+    },
+    {
+      "book": "Psalms",
+      "chapter": 23,
+      "verse": 3,
+      "text": "He restoreth my soul:\nHe guideth me in the paths of righteousness for his name's sake.",
+      "paragraph_break_before": false
+    },
+    {
+      "book": "Psalms",
+      "chapter": 23,
+      "verse": 4,
+      "text": "Yea, though I walk through the valley of the shadow of death,\nI will fear no evil; for thou art with me;\nThy rod and thy staff, they comfort me.",
+      "paragraph_break_before": false
+    },
+    {
+      "book": "John",
+      "chapter": 3,
+      "verse": 16,
+      "text": "For God so loved the world, that he gave his only begotten Son, that whosoever believeth on him should not perish, but have eternal life.",
+      "paragraph_break_before": true
+    },
+    {
+      "book": "John",
+      "chapter": 3,
+      "verse": 17,
+      "text": "For God sent not the Son into the world to judge the world; but that the world should be saved through him.",
+      "paragraph_break_before": false
+    },
+    {
+      "book": "Romans",
+      "chapter": 8,
+      "verse": 28,
+      "text": "And we know that to them that love God all things work together for good, even to them that are called according to his purpose.",
+      "paragraph_break_before": true
+    },
+    {
+      "book": "Romans",
+      "chapter": 8,
+      "verse": 29,
+      "text": "For whom he foreknew, he also foreordained to be conformed to the image of his Son, that he might be the firstborn among many brethren:",
+      "paragraph_break_before": false
+    },
+    {
+      "book": "Romans",
+      "chapter": 8,
+      "verse": 30,
+      "text": "and whom he foreordained, them he also called: and whom he called, them he also justified: and whom he justified, them he also glorified.",
+      "paragraph_break_before": false
+    }
+  ]
+}

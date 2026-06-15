@@ -287,3 +287,54 @@ def test_tui_command_shows_planning_placeholder(capsys):
     assert "Comparison pane" in output
     assert "interactive TUI is not implemented yet" in output
 
+
+
+def test_init_db_command_creates_default_database_with_xdg_home(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+
+    assert main(["init-db"]) == 0
+    init_output = capsys.readouterr().out
+    assert "Initialized Bible database" in init_output
+
+    assert main(["--no-color", "Romans", "8:28-30"]) == 0
+    lookup_output = capsys.readouterr().out
+    assert "Romans 8:28-30 (ASV)" in lookup_output
+    assert "work together for good" in lookup_output
+
+
+def test_init_db_command_rejects_existing_without_force(tmp_path, capsys):
+    db_path = tmp_path / "bible.sqlite3"
+
+    assert main(["--db", str(db_path), "init-db"]) == 0
+    capsys.readouterr()
+
+    assert main(["--db", str(db_path), "init-db"]) == 2
+    error = capsys.readouterr().err
+    assert "Use --force" in error
+
+
+def test_init_db_command_force_replaces_existing_database(tmp_path, capsys):
+    db_path = tmp_path / "bible.sqlite3"
+
+    assert main(["--db", str(db_path), "init-db"]) == 0
+    capsys.readouterr()
+
+    assert main(["--db", str(db_path), "init-db", "--force"]) == 0
+    output = capsys.readouterr().out
+    assert "Initialized Bible database" in output
+
+
+def test_doctor_reports_default_database_path(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+
+    assert main(["doctor"]) == 0
+    output = capsys.readouterr().out
+    assert "default database not initialized" in output
+    assert "bible-reader.sqlite3" in output
+
+    assert main(["init-db"]) == 0
+    capsys.readouterr()
+
+    assert main(["doctor"]) == 0
+    output = capsys.readouterr().out
+    assert "default local database" in output

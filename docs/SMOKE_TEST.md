@@ -43,3 +43,15 @@ bible --study /tmp/bible-reader-smoke-study.json notes
 ```
 
 Expected result: commands complete without tracebacks. Search with no matches may intentionally return exit code `1`.
+
+
+## Default database smoke test
+
+```bash
+bible init-db --force
+bible doctor
+bible books
+bible John 3:16
+```
+
+The initialized default database currently contains the packaged ASV sample bundle until a full public-domain ASV import source is wired in.

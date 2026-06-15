@@ -251,3 +251,11 @@ Adds release documentation and a lightweight `bible doctor` command for smoke te
 - Add `.envrc` for the local direnv workflow.
 - Document the venv/direnv setup.
 - Keep dependency installation explicit and testable.
+
+
+## Stage 14 — Default ASV database
+
+- Add an XDG-compatible default SQLite database path.
+- Add `bible init-db` for bootstrapping a local database.
+- Prefer the default local database when it exists; otherwise keep the tiny fixture fallback.
+- Keep full-ASV import separate from the bootstrapping mechanics.

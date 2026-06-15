@@ -58,3 +58,16 @@ bible doctor
 Current early-stage commands do not silently create a default Bible database. Explicit imports require `--db PATH`.
 
 Study data is separate from Bible text. By default, user notes/bookmarks are stored under the platform user-data directory. Use `--study PATH` for an explicit study file during testing.
+
+
+## Local database initialization
+
+Create the default local SQLite database after installing:
+
+```bash
+bible init-db
+bible doctor
+bible John 3:16
+```
+
+By default, this initializes the packaged ASV sample bundle at `~/.local/share/bible-reader/bible-reader.sqlite3` unless `XDG_DATA_HOME` is set. Use `--db PATH` to target another SQLite file. Use `--force` only when you intentionally want to replace the target database.

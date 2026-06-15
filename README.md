@@ -41,6 +41,7 @@ bible search shepherd
 bible compare John 3:16
 bible compare Romans 8:28-30 --versions ASV
 bible doctor
+bible init-db
 bible tui
 bible chapters John
 bible chapters Ps
@@ -49,13 +50,15 @@ bible --study /tmp/bible-study.json bookmark add John 3:16 --label Gospel
 bible --study /tmp/bible-study.json bookmarks
 bible --study /tmp/bible-study.json note add "John 3:16" "Do not detach from context"
 bible --study /tmp/bible-study.json notes
+bible init-db
+bible John 3:16
 bible import-bundle tests/fixtures/asv_sample_bundle.json --db /tmp/bible.sqlite3
 bible --db /tmp/bible.sqlite3 John 3:16
 ```
 
 ## Current development fixture
 
-The app currently uses a tiny in-memory ASV fixture by default to prove the SQLite schema, reference parsing, rendering, import, search, navigation, comparison, and local study-data layers. The fixture currently includes Psalm 23:1-4, John 3:16-17, and Romans 8:28-30. Stage 6 adds explicit `--db` import/read commands for local ASV source or bundle files; a default installed user database will come later.
+The app currently uses a tiny in-memory ASV fixture by default to prove the SQLite schema, reference parsing, rendering, import, search, navigation, comparison, and local study-data layers. The fixture currently includes Psalm 23:1-4, John 3:16-17, and Romans 8:28-30. Stage 14 adds `bible init-db`, which creates a default local SQLite database at the XDG data path. Until a full ASV source is imported, that default database is bootstrapped from the packaged ASV sample bundle.
 
 ## Planning documents
 
