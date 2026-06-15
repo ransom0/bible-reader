@@ -32,13 +32,17 @@ bible search shepherd
 bible chapters John
 bible chapters Ps
 bible --no-color Ps 23
+bible --study /tmp/bible-study.json bookmark add John 3:16 --label Gospel
+bible --study /tmp/bible-study.json bookmarks
+bible --study /tmp/bible-study.json note add "John 3:16" "Do not detach from context"
+bible --study /tmp/bible-study.json notes
 bible import-bundle tests/fixtures/asv_sample_bundle.json --db /tmp/bible.sqlite3
 bible --db /tmp/bible.sqlite3 John 3:16
 ```
 
 ## Current development fixture
 
-The app currently uses a tiny in-memory ASV fixture by default to prove the SQLite schema, reference parsing, rendering, and import layers. The fixture currently includes Psalm 23:1-4, John 3:16-17, and Romans 8:28-30. Stage 6 adds explicit `--db` import/read commands for local ASV source or bundle files; a default installed user database will come later.
+The app currently uses a tiny in-memory ASV fixture by default to prove the SQLite schema, reference parsing, rendering, import, search, navigation, and local study-data layers. The fixture currently includes Psalm 23:1-4, John 3:16-17, and Romans 8:28-30. Stage 6 adds explicit `--db` import/read commands for local ASV source or bundle files; a default installed user database will come later.
 
 ## Planning documents
 

@@ -16,11 +16,12 @@ from .references import BibleReference, ReferenceParseError, parse_reference
 from .render import PassageRenderer, SearchRenderer
 from .repository import BibleRepository
 from .storage import connect_database, create_sample_connection, initialize_database
+from .study import StudyStore, StudyStoreError, default_study_path
 
 
 PROGRAM_NAME = "bible"
 DEFAULT_TRANSLATION = "ASV"
-KNOWN_COMMANDS = {"books", "chapters", "read", "search", "import-bundle", "import-usfx"}
+KNOWN_COMMANDS = {"books", "chapters", "read", "search", "bookmark", "bookmarks", "note", "notes", "import-bundle", "import-usfx"}
 THEMES = {"classic", "plain"}
 
 
@@ -31,6 +32,7 @@ class RenderOptions:
     color: bool = True
     theme: str = "classic"
     db_path: Path | None = None
+    study_path: Path | None = None
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -59,6 +61,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--db",
         metavar="PATH",
         help="read from or write to a SQLite Bible database",
+    )
+    parser.add_argument(
+        "--study",
+        metavar="PATH",
+        help="read/write bookmarks and notes from this JSON study-data file",
     )
 
     subparsers = parser.add_subparsers(dest="command")
@@ -101,6 +108,57 @@ def build_parser() -> argparse.ArgumentParser:
     )
     search_parser.set_defaults(func=search_command)
 
+
+    bookmark_parser = subparsers.add_parser(
+        "bookmark",
+        help="add, list, or remove local bookmarks",
+        description="Add, list, or remove local bookmarks stored outside Bible text.",
+    )
+    bookmark_subparsers = bookmark_parser.add_subparsers(dest="bookmark_command")
+
+    bookmark_add_parser = bookmark_subparsers.add_parser("add", help="bookmark a Bible reference")
+    bookmark_add_parser.add_argument("reference", nargs="+", help="reference to bookmark, such as 'John 3:16'")
+    bookmark_add_parser.add_argument("--label", default="", help="optional short label for the bookmark")
+    bookmark_add_parser.set_defaults(func=bookmark_add_command)
+
+    bookmark_list_parser = bookmark_subparsers.add_parser("list", help="list bookmarks")
+    bookmark_list_parser.set_defaults(func=bookmark_list_command)
+
+    bookmark_remove_parser = bookmark_subparsers.add_parser("remove", help="remove a bookmark")
+    bookmark_remove_parser.add_argument("reference", nargs="+", help="reference to remove, such as 'John 3:16'")
+    bookmark_remove_parser.set_defaults(func=bookmark_remove_command)
+    bookmark_parser.set_defaults(func=bookmark_list_command)
+
+    bookmarks_parser = subparsers.add_parser(
+        "bookmarks",
+        help="list local bookmarks",
+        description="List local bookmarks stored outside Bible text.",
+    )
+    bookmarks_parser.set_defaults(func=bookmark_list_command)
+
+    note_parser = subparsers.add_parser(
+        "note",
+        help="add or list local notes",
+        description="Add or list local notes stored outside Bible text.",
+    )
+    note_subparsers = note_parser.add_subparsers(dest="note_command")
+
+    note_add_parser = note_subparsers.add_parser("add", help="add a note to a Bible reference")
+    note_add_parser.add_argument("reference", help="reference to annotate, such as 'John 3:16'")
+    note_add_parser.add_argument("text", nargs="+", help="note text")
+    note_add_parser.set_defaults(func=note_add_command)
+
+    note_list_parser = note_subparsers.add_parser("list", help="list notes")
+    note_list_parser.set_defaults(func=note_list_command)
+    note_parser.set_defaults(func=note_list_command)
+
+    notes_parser = subparsers.add_parser(
+        "notes",
+        help="list local notes",
+        description="List local notes stored outside Bible text.",
+    )
+    notes_parser.set_defaults(func=note_list_command)
+
     import_bundle_parser = subparsers.add_parser(
         "import-bundle",
         help="import a normalized JSON translation bundle into SQLite",
@@ -129,6 +187,8 @@ def show_placeholder(_args: argparse.Namespace) -> int:
     print("Try: bible read John 3")
     print("Try: bible search shepherd")
     print("Try: bible chapters John")
+    print("Try: bible bookmark add John 3:16")
+    print("Try: bible note add John 3:16 \"study note\"")
     print("Try: bible import-usfx SOURCE.usfx --db bible.sqlite3")
     return 0
 
@@ -293,6 +353,111 @@ def search_command(args: argparse.Namespace) -> int:
     return 0 if results else 1
 
 
+def _study_store(options: RenderOptions) -> StudyStore:
+    return StudyStore(options.study_path)
+
+
+def _normalize_reference_for_study(raw_reference: str) -> tuple[BibleReference | None, str | None]:
+    try:
+        reference = parse_reference(raw_reference)
+    except ReferenceParseError as exc:
+        return None, str(exc)
+    return reference, None
+
+
+def bookmark_add_command(args: argparse.Namespace) -> int:
+    """Add a local bookmark."""
+    options = getattr(args, "render_options", RenderOptions())
+    raw_reference = " ".join(args.reference)
+    reference, error = _normalize_reference_for_study(raw_reference)
+    if error is not None or reference is None:
+        print(f"Error: {error}", file=sys.stderr)
+        return 2
+    try:
+        bookmark = _study_store(options).add_bookmark(reference.label(), label=args.label)
+    except StudyStoreError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+    suffix = f" — {bookmark.label}" if bookmark.label else ""
+    print(f"Bookmarked {bookmark.reference}{suffix}")
+    return 0
+
+
+def bookmark_list_command(args: argparse.Namespace) -> int:
+    """List local bookmarks."""
+    options = getattr(args, "render_options", RenderOptions())
+    try:
+        bookmarks = _study_store(options).list_bookmarks()
+    except StudyStoreError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+    print("Bookmarks:")
+    if not bookmarks:
+        print("  No bookmarks yet.")
+        return 0
+    for index, bookmark in enumerate(bookmarks, start=1):
+        suffix = f" — {bookmark.label}" if bookmark.label else ""
+        print(f"{index:>2}. {bookmark.reference}{suffix}")
+    return 0
+
+
+def bookmark_remove_command(args: argparse.Namespace) -> int:
+    """Remove a local bookmark."""
+    options = getattr(args, "render_options", RenderOptions())
+    raw_reference = " ".join(args.reference)
+    reference, error = _normalize_reference_for_study(raw_reference)
+    if error is not None or reference is None:
+        print(f"Error: {error}", file=sys.stderr)
+        return 2
+    try:
+        removed = _study_store(options).remove_bookmark(reference.label())
+    except StudyStoreError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+    if not removed:
+        print(f"Bookmark not found: {reference.label()}", file=sys.stderr)
+        return 1
+    print(f"Removed bookmark: {reference.label()}")
+    return 0
+
+
+def note_add_command(args: argparse.Namespace) -> int:
+    """Add a local note."""
+    options = getattr(args, "render_options", RenderOptions())
+    reference, error = _normalize_reference_for_study(args.reference)
+    if error is not None or reference is None:
+        print(f"Error: {error}", file=sys.stderr)
+        return 2
+    text = " ".join(args.text).strip()
+    if not text:
+        print("Error: note text is required.", file=sys.stderr)
+        return 2
+    try:
+        note = _study_store(options).add_note(reference.label(), text)
+    except StudyStoreError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+    print(f"Added note for {note.reference}")
+    return 0
+
+
+def note_list_command(args: argparse.Namespace) -> int:
+    """List local notes."""
+    options = getattr(args, "render_options", RenderOptions())
+    try:
+        notes = _study_store(options).list_notes()
+    except StudyStoreError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+    print("Notes:")
+    if not notes:
+        print("  No notes yet.")
+        return 0
+    for index, note in enumerate(notes, start=1):
+        print(f"{index:>2}. {note.reference} — {note.text}")
+    return 0
+
+
 def import_bundle_command(args: argparse.Namespace) -> int:
     """Import a normalized translation bundle into SQLite."""
     options = getattr(args, "render_options", RenderOptions())
@@ -347,6 +512,7 @@ def extract_render_options(args_list: list[str]) -> tuple[list[str], RenderOptio
     color = True
     theme = "classic"
     db_path: Path | None = None
+    study_path: Path | None = None
     index = 0
     while index < len(args_list):
         item = args_list[index]
@@ -356,7 +522,7 @@ def extract_render_options(args_list: list[str]) -> tuple[list[str], RenderOptio
             continue
         if item == "--theme":
             if index + 1 >= len(args_list):
-                return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path), "--theme requires a value."
+                return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path), "--theme requires a value."
             theme = args_list[index + 1]
             index += 2
             continue
@@ -364,9 +530,19 @@ def extract_render_options(args_list: list[str]) -> tuple[list[str], RenderOptio
             theme = item.split("=", 1)[1]
             index += 1
             continue
+        if item == "--study":
+            if index + 1 >= len(args_list):
+                return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path), "--study requires a value."
+            study_path = Path(args_list[index + 1]).expanduser()
+            index += 2
+            continue
+        if item.startswith("--study="):
+            study_path = Path(item.split("=", 1)[1]).expanduser()
+            index += 1
+            continue
         if item == "--db":
             if index + 1 >= len(args_list):
-                return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path), "--db requires a value."
+                return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path), "--db requires a value."
             db_path = Path(args_list[index + 1]).expanduser()
             index += 2
             continue
@@ -378,10 +554,10 @@ def extract_render_options(args_list: list[str]) -> tuple[list[str], RenderOptio
         index += 1
 
     if theme not in THEMES:
-        return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path), (
+        return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path), (
             f"Unknown theme: {theme}. Choose one of: {', '.join(sorted(THEMES))}."
         )
-    return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path), None
+    return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path), None
 
 
 def main(argv: Sequence[str] | None = None) -> int:

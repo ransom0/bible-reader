@@ -139,9 +139,10 @@ Add local user study data.
 Deliverables:
 
 - bookmark passages
-- list bookmarks
+- list/remove bookmarks
 - add/list notes
 - keep user data separate from Bible text
+- write JSON user data atomically
 - tests using temporary data dirs
 
 ## Stage 10 — Comparison
@@ -220,3 +221,7 @@ Adds simple safe SQLite-backed phrase search with result formatting, book limiti
 ## Stage 8 status
 
 Adds `bible chapters <book>` as the first navigation helper beyond the existing `books` command. This keeps navigation reference-first and context-aware: users can inspect available chapters for a canonical book or common alias before reading/searching.
+
+## Stage 9 implementation note
+
+Stage 9 adds a separate JSON-backed study-data store for bookmarks and notes. User study data is kept outside the Scripture SQLite database and can be redirected with `--study PATH` for tests, backups, or experiments.

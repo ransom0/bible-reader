@@ -14,6 +14,8 @@ def test_main_without_args_prints_placeholder(capsys):
     assert "bible read John 3" in output
     assert "bible search shepherd" in output
     assert "bible chapters John" in output
+    assert "bible bookmark add John 3:16" in output
+    assert "bible note add John 3:16" in output
 
 
 def test_help_output(capsys):
@@ -201,3 +203,52 @@ def test_chapters_command_returns_one_for_missing_book(capsys):
     error = capsys.readouterr().err
     assert "Book not found" in error
     assert "Genesis" in error
+
+
+def test_bookmark_commands_use_explicit_study_file(tmp_path, capsys):
+    study_path = tmp_path / "study.json"
+
+    assert main(["--study", str(study_path), "bookmark", "add", "John", "3:16", "--label", "Gospel"]) == 0
+    add_output = capsys.readouterr().out
+    assert "Bookmarked John 3:16" in add_output
+    assert "Gospel" in add_output
+
+    assert main(["--study", str(study_path), "bookmarks"]) == 0
+    list_output = capsys.readouterr().out
+    assert "Bookmarks:" in list_output
+    assert "John 3:16" in list_output
+    assert "Gospel" in list_output
+
+    assert main(["--study", str(study_path), "bookmark", "remove", "John", "3:16"]) == 0
+    remove_output = capsys.readouterr().out
+    assert "Removed bookmark: John 3:16" in remove_output
+
+
+def test_bookmark_remove_returns_one_for_missing_bookmark(tmp_path, capsys):
+    study_path = tmp_path / "study.json"
+
+    assert main(["--study", str(study_path), "bookmark", "remove", "John", "3:16"]) == 1
+
+    error = capsys.readouterr().err
+    assert "Bookmark not found: John 3:16" in error
+
+
+def test_note_commands_use_explicit_study_file(tmp_path, capsys):
+    study_path = tmp_path / "study.json"
+
+    assert main(["--study", str(study_path), "note", "add", "John 3:16", "Do", "not", "proof-text"]) == 0
+    add_output = capsys.readouterr().out
+    assert "Added note for John 3:16" in add_output
+
+    assert main(["--study", str(study_path), "notes"]) == 0
+    list_output = capsys.readouterr().out
+    assert "Notes:" in list_output
+    assert "John 3:16" in list_output
+    assert "Do not proof-text" in list_output
+
+
+def test_study_option_requires_value(capsys):
+    assert main(["--study"]) == 2
+
+    error = capsys.readouterr().err
+    assert "--study requires a value" in error
