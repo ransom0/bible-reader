@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
+import pytest
+
+from bible_reader.importers import ImportErrorDetail
 from bible_reader.default_data import initialize_default_database, load_packaged_sample_bundle
 from bible_reader.repository import BibleRepository
 from bible_reader.storage import connect_database
@@ -47,7 +51,7 @@ def test_initialize_default_database_rejects_existing_without_force(tmp_path):
 
     try:
         initialize_default_database(db_path=db_path)
-    except ValueError as exc:
+    except ImportErrorDetail as exc:
         assert "Use --force" in str(exc)
     else:
         raise AssertionError("Expected existing DB to require --force")
@@ -97,3 +101,40 @@ def test_initialize_default_database_can_import_explicit_bundle(tmp_path):
 
     assert verse is not None
     assert verse.text == "In the beginning was the Word."
+
+
+def test_initialize_default_database_can_import_usfx_source(tmp_path):
+    db_path = tmp_path / "bible.sqlite3"
+    source_path = Path("tests/fixtures/asv_tiny.usfx")
+
+    created = initialize_default_database(
+        db_path=db_path,
+        usfx_source_path=source_path,
+        force=True,
+    )
+
+    assert created == db_path
+    connection = connect_database(db_path)
+    try:
+        repository = BibleRepository(connection)
+        verse = repository.get_verse(
+            translation_code="ASV",
+            book_name="John",
+            chapter=3,
+            verse=16,
+        )
+    finally:
+        connection.close()
+
+    assert verse is not None
+    assert "For God so loved the world" in verse.text
+
+
+def test_initialize_default_database_rejects_two_source_modes(tmp_path):
+    with pytest.raises(ImportErrorDetail, match="either source_path or usfx_source_path"):
+        initialize_default_database(
+            db_path=tmp_path / "bible.sqlite3",
+            source_path="tests/fixtures/asv_sample_bundle.json",
+            usfx_source_path="tests/fixtures/asv_tiny.usfx",
+            force=True,
+        )

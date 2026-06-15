@@ -47,7 +47,8 @@ def test_doctor_command_reports_runtime_status(capsys):
     output = capsys.readouterr().out
     assert "bible-reader doctor" in output
     assert f"version: {__version__}" in output
-    assert "database: sample fixture" in output
+    assert "database:" in output
+    assert ("sample fixture" in output) or ("default local database" in output)
     assert "status: ok" in output
 
 
@@ -172,6 +173,63 @@ def test_import_usfx_command_writes_sqlite_db_and_read_uses_db(tmp_path, capsys)
     assert "Psalms 23 (ASV)" in lookup_output
     assert "Jehovah is my shepherd;" in lookup_output
     assert "I shall not want." in lookup_output
+
+
+
+
+def test_import_usfx_command_accepts_zip_source(tmp_path, capsys):
+    from zipfile import ZipFile
+
+    db_path = tmp_path / "bible.sqlite3"
+    source_zip = tmp_path / "eng-asv_usfx.zip"
+    with ZipFile(source_zip, "w") as archive:
+        archive.write("tests/fixtures/asv_tiny.usfx", "eng-asv_usfx.xml")
+
+    assert main(["import-usfx", str(source_zip), "--db", str(db_path)]) == 0
+    import_output = capsys.readouterr().out
+    assert "Imported ASV USFX source" in import_output
+    assert "2 books, 4 verses" in import_output
+
+    assert main(["--db", str(db_path), "--no-color", "Ps", "23"]) == 0
+    lookup_output = capsys.readouterr().out
+    assert "Psalms 23 (ASV)" in lookup_output
+    assert "Jehovah is my shepherd" in lookup_output
+
+
+def test_init_db_command_accepts_usfx_source(tmp_path, capsys):
+    db_path = tmp_path / "default.sqlite3"
+
+    assert main([
+        "init-db",
+        "--force",
+        "--usfx-source",
+        "tests/fixtures/asv_tiny.usfx",
+        "--db",
+        str(db_path),
+    ]) == 0
+    output = capsys.readouterr().out
+    assert "Initialized Bible database from ASV USFX source" in output
+
+    assert main(["--db", str(db_path), "--no-color", "John", "3:16"]) == 0
+    lookup_output = capsys.readouterr().out
+    assert "For God so loved the world" in lookup_output
+
+
+def test_init_db_command_rejects_two_source_modes(tmp_path, capsys):
+    db_path = tmp_path / "bad.sqlite3"
+
+    assert main([
+        "init-db",
+        "--source",
+        "tests/fixtures/asv_sample_bundle.json",
+        "--usfx-source",
+        "tests/fixtures/asv_tiny.usfx",
+        "--db",
+        str(db_path),
+    ]) == 2
+
+    error = capsys.readouterr().err
+    assert "choose either --source or --usfx-source" in error
 
 
 def test_search_command_finds_sample_fixture_matches(capsys):

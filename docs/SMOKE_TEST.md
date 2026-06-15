@@ -55,3 +55,16 @@ bible John 3:16
 ```
 
 The initialized default database currently contains the packaged ASV sample bundle until a full public-domain ASV import source is wired in.
+
+
+## ASV USFX smoke test
+
+With a local eBible ASV USFX zip downloaded:
+
+```bash
+bible init-db --force --usfx-source ~/Downloads/bible-sources/eng-asv_usfx.zip
+bible doctor
+bible Genesis 1:1
+bible read Psalm 23
+bible search resurrection --book Romans
+```

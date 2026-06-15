@@ -58,10 +58,21 @@ upstream source is a public-domain ASV 1901 USFX/USFM distribution such as the
 ASV resources published by eBible.
 
 The converter does not download files automatically. Download the source
-manually, verify that it is ASV 1901/public domain, then import a local XML file:
+manually, verify that it is ASV 1901/public domain, then import either the local
+USFX XML file or the eBible USFX zip archive:
 
 ```bash
-bible import-usfx ~/Downloads/eng-asv.usfx --db ~/.local/share/bible-reader/bible.sqlite3
+mkdir -p ~/Downloads/bible-sources
+curl -L -o ~/Downloads/bible-sources/eng-asv_usfx.zip \
+  https://ebible.org/scriptures/eng-asv_usfx.zip
+bible init-db --force --usfx-source ~/Downloads/bible-sources/eng-asv_usfx.zip
+```
+
+You can also import into an explicit SQLite database path:
+
+```bash
+bible import-usfx ~/Downloads/bible-sources/eng-asv_usfx.zip \
+  --db ~/.local/share/bible-reader/bible-reader.sqlite3
 ```
 
 For normalized internal bundles, use:
@@ -81,3 +92,19 @@ The converter currently targets Scripture verse text plus paragraph/poetry
 formatting hooks. Footnotes, cross-references, headings, and superscriptions are
 intentionally left for later source-format passes so they can be modeled cleanly
 rather than jammed into verse text.
+
+## Full ASV local database workflow
+
+After importing the eBible ASV USFX zip with `init-db --usfx-source`, normal
+commands automatically use the default local SQLite database:
+
+```bash
+bible doctor
+bible Genesis 1:1
+bible read Matthew 5
+bible search resurrection --book Romans
+```
+
+Do not commit generated `.sqlite3` files. The repo should contain importer code,
+tests, and documentation; each user should build their own local database from
+public-domain source files.

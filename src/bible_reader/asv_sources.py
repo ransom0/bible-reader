@@ -7,9 +7,11 @@ or trusting downloaded data as code.
 
 from __future__ import annotations
 
+from io import BytesIO
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
+from zipfile import BadZipFile, ZipFile
 
 from .importers import ImportErrorDetail, validate_translation_bundle
 
@@ -101,21 +103,45 @@ def asv_book_records() -> list[dict[str, Any]]:
     ]
 
 
+def convert_asv_source_to_bundle(path: str | Path) -> dict[str, Any]:
+    """Convert a local ASV USFX XML file or eBible USFX zip into a bundle.
+
+    This helper keeps the full-ASV import path local/offline. It reads data as
+    XML/text only, never executes imported content, and accepts the common
+    eBible ``eng-asv_usfx.zip`` distribution without requiring the user to unzip
+    it by hand.
+    """
+    source_path = Path(path).expanduser()
+    if source_path.suffix.lower() == ".zip":
+        root = _parse_usfx_zip(source_path)
+    else:
+        root = _parse_usfx_xml_file(source_path)
+    return _convert_usfx_root_to_bundle(root)
+
+
 def convert_usfx_asv_to_bundle(path: str | Path) -> dict[str, Any]:
     """Convert an ASV USFX XML source file into the internal bundle shape.
 
-    The converter accepts local XML files only. It ignores notes and headings for
-    now, preserves poetry line breaks when represented by line-level markers, and
-    records paragraph breaks as verse metadata.
+    Kept as a compatibility alias for the original Stage 6 command/tests. New
+    code should call :func:`convert_asv_source_to_bundle`, which also supports
+    eBible USFX zip archives.
     """
-    source_path = Path(path)
-    try:
-        root = ET.parse(source_path).getroot()
-    except ET.ParseError as exc:
-        raise ImportErrorDetail(f"Invalid USFX XML source: {source_path}") from exc
-    except OSError as exc:
-        raise ImportErrorDetail(f"Could not read USFX source: {source_path}") from exc
+    return convert_asv_source_to_bundle(path)
 
+
+def summarize_bundle(bundle: dict[str, Any]) -> dict[str, int | str]:
+    """Return a small summary for import success messages and smoke tests."""
+    validate_translation_bundle(bundle)
+    verses = bundle["verses"]
+    books_with_verses = {str(verse["book"]) for verse in verses}
+    return {
+        "translation": str(bundle["translation"]["code"]),
+        "books": len(books_with_verses),
+        "verses": len(verses),
+    }
+
+
+def _convert_usfx_root_to_bundle(root: ET.Element) -> dict[str, Any]:
     state = _UsfxState()
     _walk_usfx(root, state)
     state.flush_verse()
@@ -127,6 +153,49 @@ def convert_usfx_asv_to_bundle(path: str | Path) -> dict[str, Any]:
     }
     validate_translation_bundle(bundle)
     return bundle
+
+
+def _parse_usfx_xml_file(source_path: Path) -> ET.Element:
+    try:
+        return ET.parse(source_path).getroot()
+    except ET.ParseError as exc:
+        raise ImportErrorDetail(f"Invalid USFX XML source: {source_path}") from exc
+    except OSError as exc:
+        raise ImportErrorDetail(f"Could not read USFX source: {source_path}") from exc
+
+
+def _parse_usfx_zip(source_path: Path) -> ET.Element:
+    try:
+        with ZipFile(source_path) as archive:
+            candidates = [
+                name
+                for name in archive.namelist()
+                if not name.endswith("/") and Path(name).suffix.lower() in {".usfx", ".xml"}
+            ]
+            if not candidates:
+                raise ImportErrorDetail(f"No USFX XML file found inside zip archive: {source_path}")
+            source_name = _choose_usfx_member(candidates)
+            with archive.open(source_name) as handle:
+                data = handle.read()
+    except BadZipFile as exc:
+        raise ImportErrorDetail(f"Invalid zip archive: {source_path}") from exc
+    except OSError as exc:
+        raise ImportErrorDetail(f"Could not read zip archive: {source_path}") from exc
+
+    try:
+        return ET.parse(BytesIO(data)).getroot()
+    except ET.ParseError as exc:
+        raise ImportErrorDetail(f"Invalid USFX XML inside zip archive: {source_path}") from exc
+
+
+def _choose_usfx_member(candidates: list[str]) -> str:
+    def score(name: str) -> tuple[int, int, str]:
+        lowered = name.lower()
+        preferred = 0 if "eng-asv" in lowered or "asv" in lowered else 1
+        suffix_rank = 0 if lowered.endswith(".usfx") else 1
+        return preferred, suffix_rank, name
+
+    return sorted(candidates, key=score)[0]
 
 
 class _UsfxState:

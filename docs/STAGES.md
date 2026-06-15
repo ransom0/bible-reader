@@ -259,3 +259,10 @@ Adds release documentation and a lightweight `bible doctor` command for smoke te
 - Add `bible init-db` for bootstrapping a local database.
 - Prefer the default local database when it exists; otherwise keep the tiny fixture fallback.
 - Keep full-ASV import separate from the bootstrapping mechanics.
+
+
+## Stage 15 — full ASV source import
+
+- Accept local eBible-style ASV USFX zip archives in addition to raw USFX XML files.
+- Allow `bible init-db --usfx-source SOURCE` to build the default SQLite DB from a full local ASV source.
+- Keep tests on tiny fixtures; do not commit generated SQLite databases or large downloaded source archives.

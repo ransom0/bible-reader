@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from zipfile import ZipFile
 
 import pytest
 
-from bible_reader.asv_sources import asv_book_records, convert_usfx_asv_to_bundle
+from bible_reader.asv_sources import asv_book_records, convert_asv_source_to_bundle, convert_usfx_asv_to_bundle, summarize_bundle
 from bible_reader.importers import ImportErrorDetail, import_translation_bundle
 from bible_reader.repository import BibleRepository
 from bible_reader.storage import connect_database
@@ -73,3 +74,25 @@ def test_convert_usfx_rejects_unknown_book_code(tmp_path: Path):
 
     with pytest.raises(ImportErrorDetail, match="Unsupported USFX book code"):
         convert_usfx_asv_to_bundle(source)
+
+
+def test_convert_asv_source_accepts_ebible_style_usfx_zip(tmp_path: Path):
+    source_zip = tmp_path / "eng-asv_usfx.zip"
+    with ZipFile(source_zip, "w") as archive:
+        archive.write(FIXTURE_PATH, "eng-asv_usfx.xml")
+
+    bundle = convert_asv_source_to_bundle(source_zip)
+    summary = summarize_bundle(bundle)
+
+    assert summary == {"translation": "ASV", "books": 2, "verses": 4}
+    assert bundle["verses"][0]["book"] == "Psalms"
+    assert bundle["verses"][2]["book"] == "John"
+
+
+def test_convert_asv_source_rejects_zip_without_usfx(tmp_path: Path):
+    source_zip = tmp_path / "not-usfx.zip"
+    with ZipFile(source_zip, "w") as archive:
+        archive.writestr("README.txt", "not a USFX source")
+
+    with pytest.raises(ImportErrorDetail, match="No USFX XML file found"):
+        convert_asv_source_to_bundle(source_zip)

@@ -7,6 +7,7 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
+from .asv_sources import convert_asv_source_to_bundle
 from .importers import ImportErrorDetail, import_translation_bundle, import_translation_bundle_file, load_translation_bundle
 from .storage import connect_database, default_database_path, initialize_database
 
@@ -28,13 +29,18 @@ def initialize_default_database(
     *,
     db_path: str | Path | None = None,
     source_path: str | Path | None = None,
+    usfx_source_path: str | Path | None = None,
     force: bool = False,
 ) -> Path:
     """Create or replace a local Bible database and import ASV data.
 
-    If ``source_path`` is omitted, the packaged ASV sample bundle is imported.
-    Later full-ASV stages can reuse this function with a real local source file.
+    If both source paths are omitted, the packaged ASV sample bundle is
+    imported. Use ``source_path`` for normalized JSON bundles and
+    ``usfx_source_path`` for local ASV USFX XML/zip sources.
     """
+    if source_path is not None and usfx_source_path is not None:
+        raise ImportErrorDetail("Choose either source_path or usfx_source_path, not both.")
+
     target = Path(db_path) if db_path is not None else default_database_path()
     target = target.expanduser()
     if target.exists() and not force:
@@ -49,12 +55,15 @@ def initialize_default_database(
     connection = connect_database(target)
     try:
         initialize_database(connection)
-        if source_path is None:
-            import_translation_bundle(connection, load_packaged_sample_bundle())
-        else:
+        if usfx_source_path is not None:
+            bundle = convert_asv_source_to_bundle(usfx_source_path)
+            import_translation_bundle(connection, bundle)
+        elif source_path is not None:
             # Validate before writing; this path loads JSON only and never executes input.
             bundle = load_translation_bundle(source_path)
             import_translation_bundle(connection, bundle)
+        else:
+            import_translation_bundle(connection, load_packaged_sample_bundle())
     finally:
         connection.close()
     return target

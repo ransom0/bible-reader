@@ -53,12 +53,14 @@ bible --study /tmp/bible-study.json notes
 bible init-db
 bible John 3:16
 bible import-bundle tests/fixtures/asv_sample_bundle.json --db /tmp/bible.sqlite3
+bible import-usfx ~/Downloads/bible-sources/eng-asv_usfx.zip --db /tmp/asv.sqlite3
+bible init-db --force --usfx-source ~/Downloads/bible-sources/eng-asv_usfx.zip
 bible --db /tmp/bible.sqlite3 John 3:16
 ```
 
 ## Current development fixture
 
-The app currently uses a tiny in-memory ASV fixture by default to prove the SQLite schema, reference parsing, rendering, import, search, navigation, comparison, and local study-data layers. The fixture currently includes Psalm 23:1-4, John 3:16-17, and Romans 8:28-30. Stage 14 adds `bible init-db`, which creates a default local SQLite database at the XDG data path. Until a full ASV source is imported, that default database is bootstrapped from the packaged ASV sample bundle.
+The app uses a tiny in-memory ASV fixture when no default database exists. The fixture includes Psalm 23:1-4, John 3:16-17, and Romans 8:28-30. `bible init-db` creates a default local SQLite database at the XDG data path. By default that database is bootstrapped from the packaged ASV sample bundle; use `bible init-db --force --usfx-source ~/Downloads/bible-sources/eng-asv_usfx.zip` to build the default database from a full local ASV USFX source archive.
 
 ## Planning documents
 

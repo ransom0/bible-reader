@@ -9,7 +9,7 @@ from pathlib import Path
 import sys
 
 from . import __version__
-from .asv_sources import convert_usfx_asv_to_bundle
+from .asv_sources import convert_asv_source_to_bundle, summarize_bundle
 from .default_data import initialize_default_database
 from .importers import ImportErrorDetail, import_translation_bundle, import_translation_bundle_file
 from .models import Verse
@@ -198,10 +198,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     import_usfx_parser = subparsers.add_parser(
         "import-usfx",
-        help="convert and import a local ASV USFX XML source into SQLite",
-        description="Convert and import a local ASV USFX XML source into SQLite.",
+        help="convert and import a local ASV USFX XML/zip source into SQLite",
+        description="Convert and import a local ASV USFX XML file or eBible USFX zip into SQLite.",
     )
-    import_usfx_parser.add_argument("source", help="path to a local ASV USFX XML source file")
+    import_usfx_parser.add_argument("source", help="path to a local ASV USFX XML file or eBible USFX zip")
     import_usfx_parser.set_defaults(func=import_usfx_command)
 
     init_db_parser = subparsers.add_parser(
@@ -212,6 +212,10 @@ def build_parser() -> argparse.ArgumentParser:
     init_db_parser.add_argument(
         "--source",
         help="optional normalized translation bundle JSON file to import instead of packaged sample data",
+    )
+    init_db_parser.add_argument(
+        "--usfx-source",
+        help="optional local ASV USFX XML file or eBible USFX zip to convert/import",
     )
     init_db_parser.add_argument(
         "--force",
@@ -238,7 +242,7 @@ def show_placeholder(_args: argparse.Namespace) -> int:
     print("Try: bible bookmark add John 3:16")
     print("Try: bible note add John 3:16 \"study note\"")
     print("Try: bible init-db")
-    print("Try: bible import-usfx SOURCE.usfx --db bible.sqlite3")
+    print("Try: bible import-usfx SOURCE.usfx-or-zip --db bible.sqlite3")
     return 0
 
 
@@ -611,9 +615,13 @@ def init_db_command(args: argparse.Namespace) -> int:
     options = getattr(args, "render_options", RenderOptions())
     target = options.db_path or default_database_path()
     try:
+        if args.source and args.usfx_source:
+            print("Error: choose either --source or --usfx-source, not both.", file=sys.stderr)
+            return 2
         created_path = initialize_default_database(
             db_path=target,
             source_path=args.source,
+            usfx_source_path=args.usfx_source,
             force=args.force,
         )
     except ImportErrorDetail as exc:
@@ -622,6 +630,8 @@ def init_db_command(args: argparse.Namespace) -> int:
 
     if args.source:
         print(f"Initialized Bible database from {args.source}: {created_path}")
+    elif args.usfx_source:
+        print(f"Initialized Bible database from ASV USFX source {args.usfx_source}: {created_path}")
     else:
         print(f"Initialized Bible database from packaged ASV sample data: {created_path}")
     return 0
@@ -655,7 +665,8 @@ def import_usfx_command(args: argparse.Namespace) -> int:
         return 2
 
     try:
-        bundle = convert_usfx_asv_to_bundle(args.source)
+        bundle = convert_asv_source_to_bundle(args.source)
+        summary = summarize_bundle(bundle)
         connection = connect_database(options.db_path)
         try:
             import_translation_bundle(connection, bundle)
@@ -665,7 +676,10 @@ def import_usfx_command(args: argparse.Namespace) -> int:
         print(f"Error: {exc}", file=sys.stderr)
         return 2
 
-    print(f"Imported ASV USFX source into {options.db_path}")
+    print(
+        f"Imported ASV USFX source into {options.db_path} "
+        f"({summary['books']} books, {summary['verses']} verses)"
+    )
     return 0
 
 

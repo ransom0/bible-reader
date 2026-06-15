@@ -71,3 +71,21 @@ bible John 3:16
 ```
 
 By default, this initializes the packaged ASV sample bundle at `~/.local/share/bible-reader/bible-reader.sqlite3` unless `XDG_DATA_HOME` is set. Use `--db PATH` to target another SQLite file. Use `--force` only when you intentionally want to replace the target database.
+
+
+## Full ASV source import
+
+Download the public-domain ASV USFX zip from eBible, then initialize the default
+local SQLite database from that local file:
+
+```bash
+mkdir -p ~/Downloads/bible-sources
+curl -L -o ~/Downloads/bible-sources/eng-asv_usfx.zip \
+  https://ebible.org/scriptures/eng-asv_usfx.zip
+bible init-db --force --usfx-source ~/Downloads/bible-sources/eng-asv_usfx.zip
+bible doctor
+bible Genesis 1:1
+```
+
+The app does not commit or ship generated SQLite databases. Rebuild the local DB
+from the public-domain source file whenever needed.
