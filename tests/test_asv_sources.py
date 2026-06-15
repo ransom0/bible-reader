@@ -137,3 +137,21 @@ def test_convert_asv_source_skips_blank_omitted_verse_markers(tmp_path: Path):
     assert references == [("Matthew", 17, 20), ("Matthew", 17, 22)]
     assert all(verse["text"] for verse in bundle["verses"])
 
+
+
+def test_convert_asv_source_normalizes_punctuation_spacing(tmp_path: Path):
+    source = tmp_path / "punctuation-spacing.usfx"
+    source.write_text(
+        """<usfx>
+        <book id="GEN"><c id="1" />
+            <p><v id="1" />In the beginning God created the heavens and the earth <it>.</it></p>
+            <p><v id="2" />For God so loved the world <it>,</it> that he gave.</p>
+        </book>
+        </usfx>""",
+        encoding="utf-8",
+    )
+
+    bundle = convert_asv_source_to_bundle(source)
+
+    assert bundle["verses"][0]["text"] == "In the beginning God created the heavens and the earth."
+    assert bundle["verses"][1]["text"] == "For God so loved the world, that he gave."

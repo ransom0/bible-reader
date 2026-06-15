@@ -8,6 +8,7 @@ or trusting downloaded data as code.
 from __future__ import annotations
 
 from io import BytesIO
+import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
@@ -329,8 +330,25 @@ def _walk_usfx(element: ET.Element, state: _UsfxState) -> None:
 
 
 def _joined_text(parts: list[str]) -> str:
-    lines = [" ".join(line.split()) for line in "".join(parts).splitlines()]
+    lines = [_normalize_verse_line(line) for line in "".join(parts).splitlines()]
     return "\n".join(line for line in lines if line).strip()
+
+
+def _normalize_verse_line(line: str) -> str:
+    """Normalize whitespace introduced by XML element boundaries.
+
+    ElementTree exposes nested markup as separate text/tail fragments. The
+    importer inserts safe spaces between fragments, then this cleanup removes
+    typography artifacts such as ``word ,`` and ``earth .`` without changing
+    verse wording.
+    """
+    cleaned = " ".join(line.split())
+    cleaned = re.sub(r"\s+([,.;:!?])", r"\1", cleaned)
+    cleaned = re.sub(r"([([{])\s+", r"\1", cleaned)
+    cleaned = re.sub(r"\s+([)\]}])", r"\1", cleaned)
+    cleaned = re.sub(r"\s+(['’])", r"\1", cleaned)
+    cleaned = re.sub(r"([‘])\s+", r"\1", cleaned)
+    return cleaned.strip()
 
 
 def _strip_namespace(tag: str) -> str:
