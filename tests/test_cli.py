@@ -12,6 +12,7 @@ def test_main_without_args_prints_placeholder(capsys):
     assert "bible books" in output
     assert "bible John 3:16" in output
     assert "bible read John 3" in output
+    assert "bible search shepherd" in output
 
 
 def test_help_output(capsys):
@@ -144,3 +145,36 @@ def test_import_usfx_command_writes_sqlite_db_and_read_uses_db(tmp_path, capsys)
     assert "Psalms 23 (ASV)" in lookup_output
     assert "Jehovah is my shepherd;" in lookup_output
     assert "I shall not want." in lookup_output
+
+
+def test_search_command_finds_sample_fixture_matches(capsys):
+    assert main(["--no-color", "search", "shepherd"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Search: shepherd (ASV)" in output
+    assert "Psalms 23:1" in output
+    assert "Jehovah is my shepherd" in output
+    assert "\033" not in output
+
+
+def test_search_command_can_limit_by_book(capsys):
+    assert main(["--no-color", "search", "world", "--book", "John"]) == 0
+
+    output = capsys.readouterr().out
+    assert "John 3:16" in output
+    assert "John 3:17" in output
+    assert "Romans" not in output
+
+
+def test_search_command_returns_one_when_no_matches(capsys):
+    assert main(["--no-color", "search", "zzzzzz"]) == 1
+
+    output = capsys.readouterr().out
+    assert "No matches found." in output
+
+
+def test_search_command_rejects_bad_limit(capsys):
+    assert main(["search", "world", "--limit", "0"]) == 2
+
+    error = capsys.readouterr().err
+    assert "--limit must be 1 or greater" in error

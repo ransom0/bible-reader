@@ -13,14 +13,14 @@ from .asv_sources import convert_usfx_asv_to_bundle
 from .importers import ImportErrorDetail, import_translation_bundle, import_translation_bundle_file
 from .models import Verse
 from .references import BibleReference, ReferenceParseError, parse_reference
-from .render import PassageRenderer
+from .render import PassageRenderer, SearchRenderer
 from .repository import BibleRepository
 from .storage import connect_database, create_sample_connection, initialize_database
 
 
 PROGRAM_NAME = "bible"
 DEFAULT_TRANSLATION = "ASV"
-KNOWN_COMMANDS = {"books", "read", "import-bundle", "import-usfx"}
+KNOWN_COMMANDS = {"books", "read", "search", "import-bundle", "import-usfx"}
 THEMES = {"classic", "plain"}
 
 
@@ -78,6 +78,21 @@ def build_parser() -> argparse.ArgumentParser:
     read_parser.add_argument("reference", nargs="+", help="chapter reference, such as 'John 3'")
     read_parser.set_defaults(func=read_reference_command)
 
+    search_parser = subparsers.add_parser(
+        "search",
+        help="search the current database for a word or phrase",
+        description="Search the current database for a word or phrase.",
+    )
+    search_parser.add_argument("query", nargs="+", help="word or phrase to search for")
+    search_parser.add_argument("--book", help="limit search results to one canonical book")
+    search_parser.add_argument(
+        "--limit",
+        type=int,
+        default=25,
+        help="maximum number of results to show",
+    )
+    search_parser.set_defaults(func=search_command)
+
     import_bundle_parser = subparsers.add_parser(
         "import-bundle",
         help="import a normalized JSON translation bundle into SQLite",
@@ -104,6 +119,7 @@ def show_placeholder(_args: argparse.Namespace) -> int:
     print("Try: bible books")
     print("Try: bible John 3:16")
     print("Try: bible read John 3")
+    print("Try: bible search shepherd")
     print("Try: bible import-usfx SOURCE.usfx --db bible.sqlite3")
     return 0
 
@@ -201,6 +217,42 @@ def read_reference_command(args: argparse.Namespace) -> int:
 
     render_verses(reference, verses, options)
     return 0
+
+
+def search_command(args: argparse.Namespace) -> int:
+    """Search verses in the selected database."""
+    options = getattr(args, "render_options", RenderOptions())
+    query = " ".join(args.query)
+    if args.limit < 1:
+        print("Error: --limit must be 1 or greater.", file=sys.stderr)
+        return 2
+
+    book_name: str | None = None
+    if args.book:
+        try:
+            # Reuse the book alias normalizer without requiring a verse reference.
+            from .references import normalize_book_name
+
+            book_name = normalize_book_name(args.book)
+        except ReferenceParseError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 2
+
+    connection = _open_read_connection(options.db_path)
+    try:
+        repository = BibleRepository(connection)
+        results = repository.search_verses(
+            translation_code=DEFAULT_TRANSLATION,
+            query=query,
+            book_name=book_name,
+            limit=args.limit,
+        )
+    finally:
+        connection.close()
+
+    renderer = SearchRenderer(color=options.color, theme=options.theme)
+    print(renderer.render(query, results, translation=DEFAULT_TRANSLATION))
+    return 0 if results else 1
 
 
 def import_bundle_command(args: argparse.Namespace) -> int:

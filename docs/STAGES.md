@@ -210,3 +210,8 @@ Stage 6 adds explicit local import commands instead of silently writing to user
 data directories. This keeps the early app safe and testable: data imports use
 parameterized SQLite writes, downloaded source files are treated as untrusted
 text/XML, and normal reading remains offline after import.
+
+
+## Stage 7 status
+
+Adds simple safe SQLite-backed phrase search with result formatting, book limiting, and result limits. This remains intentionally passage-aware and reference-first rather than topical proof-text generation.

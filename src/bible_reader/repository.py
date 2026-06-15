@@ -5,6 +5,7 @@ from __future__ import annotations
 import sqlite3
 
 from .models import Book, Translation, Verse
+from .search import SearchResult
 
 
 class BibleRepository:
@@ -146,6 +147,62 @@ class BibleRepository:
                 verse=row["verse"],
                 text=row["text"],
                 paragraph_break_before=bool(row["paragraph_break_before"]),
+            )
+            for row in rows
+        ]
+
+    def search_verses(
+        self,
+        *,
+        translation_code: str,
+        query: str,
+        book_name: str | None = None,
+        limit: int = 25,
+    ) -> list[SearchResult]:
+        """Return verses matching a case-insensitive phrase query.
+
+        The query is bound as a SQLite parameter; user search text is never
+        interpolated into SQL. This keeps the first search implementation
+        boring, safe, and adequate until a later FTS-backed pass.
+        """
+        normalized_query = " ".join(query.split())
+        if not normalized_query:
+            return []
+        if limit < 1:
+            return []
+
+        like_query = f"%{normalized_query}%"
+        params: list[object] = [translation_code, like_query]
+        book_clause = ""
+        if book_name is not None:
+            book_clause = " AND b.name = ?"
+            params.append(book_name)
+        params.append(limit)
+
+        rows = self._connection.execute(
+            f"""
+            SELECT v.translation_code, b.name AS book_name, v.chapter, v.verse, v.text, v.paragraph_break_before
+            FROM verses AS v
+            JOIN books AS b ON b.id = v.book_id
+            WHERE v.translation_code = ?
+              AND v.text LIKE ? COLLATE NOCASE
+              {book_clause}
+            ORDER BY b.book_order, v.chapter, v.verse
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+        return [
+            SearchResult(
+                verse=Verse(
+                    translation=row["translation_code"],
+                    book=row["book_name"],
+                    chapter=row["chapter"],
+                    verse=row["verse"],
+                    text=row["text"],
+                    paragraph_break_before=bool(row["paragraph_break_before"]),
+                ),
+                query=normalized_query,
             )
             for row in rows
         ]

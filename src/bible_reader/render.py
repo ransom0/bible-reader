@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from .models import Verse
+from .search import SearchResult
 from .references import BibleReference
 
 
@@ -53,3 +54,38 @@ class PassageRenderer:
         for continuation in text_lines[1:]:
             rendered.append(f"     {continuation}")
         return rendered
+
+
+class SearchRenderer:
+    """Render search results with compact reference-first formatting."""
+
+    def __init__(self, *, color: bool = True, theme: str = "classic") -> None:
+        self.color = color and theme != "plain"
+        self.theme = theme
+
+    def render(self, query: str, results: Iterable[SearchResult], *, translation: str) -> str:
+        """Return formatted search results."""
+        result_list = list(results)
+        header = f"Search: {query} ({translation})"
+        lines: list[str] = [self._header(header), ""]
+        if not result_list:
+            lines.append("No matches found.")
+            return "\n".join(lines)
+
+        for result in result_list:
+            lines.append(f"{self._reference(result.reference_label)}  {self._single_line(result.verse.text)}")
+        return "\n".join(lines)
+
+    def _header(self, text: str) -> str:
+        if not self.color:
+            return text
+        return f"\033[1m{text}\033[0m"
+
+    def _reference(self, text: str) -> str:
+        if not self.color:
+            return text
+        return f"\033[36m{text}\033[0m"
+
+    @staticmethod
+    def _single_line(text: str) -> str:
+        return " / ".join(line.strip() for line in text.splitlines() if line.strip())
