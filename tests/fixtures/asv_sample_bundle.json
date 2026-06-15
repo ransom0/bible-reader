@@ -1,0 +1,28 @@
+{
+  "translation": {
+    "code": "ASV",
+    "name": "American Standard Version",
+    "language": "en",
+    "copyright": "Public domain: ASV 1901"
+  },
+  "books": [
+    {"id": 19, "name": "Psalms", "testament": "OT", "order": 19},
+    {"id": 43, "name": "John", "testament": "NT", "order": 43}
+  ],
+  "verses": [
+    {
+      "book": "Psalms",
+      "chapter": 23,
+      "verse": 1,
+      "text": "Jehovah is my shepherd;\nI shall not want.",
+      "paragraph_break_before": true
+    },
+    {
+      "book": "John",
+      "chapter": 3,
+      "verse": 16,
+      "text": "For God so loved the world, that he gave his only begotten Son, that whosoever believeth on him should not perish, but have eternal life.",
+      "paragraph_break_before": true
+    }
+  ]
+}

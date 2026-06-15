@@ -40,3 +40,8 @@ The app currently uses a tiny in-memory ASV fixture to prove the SQLite schema, 
 - `PROJECT_SPEC.md`
 - `docs/STAGES.md`
 - `docs/WORKFLOW.md`
+
+## Data sources
+
+See `docs/DATA_SOURCES.md` for translation import policy and the current ASV import bundle shape.
+

@@ -184,3 +184,11 @@ Stage 2 proves the SQLite schema and repository layer with a tiny in-memory ASV 
 ## Stage 4 implementation note
 
 Stage 4 introduces a dedicated rendering layer before the full ASV import. The fixture includes Psalm text with embedded line breaks so poetry indentation can be tested early. Paragraph/pericope spacing is modeled as verse metadata, not as hard-coded CLI behavior.
+
+## Stage 5 — ASV import planning
+
+- Add a validated internal translation bundle format.
+- Add importer tests using a tiny ASV JSON fixture.
+- Document source licensing and import safety rules.
+- Keep full ASV text import for a later, separately testable pass.
+
