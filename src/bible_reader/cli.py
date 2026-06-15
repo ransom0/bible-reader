@@ -13,7 +13,7 @@ from .asv_sources import convert_usfx_asv_to_bundle
 from .importers import ImportErrorDetail, import_translation_bundle, import_translation_bundle_file
 from .models import Verse
 from .references import BibleReference, ReferenceParseError, parse_reference
-from .render import PassageRenderer, SearchRenderer
+from .render import ComparisonRenderer, PassageRenderer, SearchRenderer
 from .repository import BibleRepository
 from .storage import connect_database, create_sample_connection, initialize_database
 from .study import StudyStore, StudyStoreError, default_study_path
@@ -21,7 +21,7 @@ from .study import StudyStore, StudyStoreError, default_study_path
 
 PROGRAM_NAME = "bible"
 DEFAULT_TRANSLATION = "ASV"
-KNOWN_COMMANDS = {"books", "chapters", "read", "search", "bookmark", "bookmarks", "note", "notes", "import-bundle", "import-usfx"}
+KNOWN_COMMANDS = {"books", "chapters", "read", "search", "compare", "bookmark", "bookmarks", "note", "notes", "import-bundle", "import-usfx"}
 THEMES = {"classic", "plain"}
 
 
@@ -108,6 +108,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     search_parser.set_defaults(func=search_command)
 
+    compare_parser = subparsers.add_parser(
+        "compare",
+        help="compare a passage across available translations",
+        description="Compare one passage across available translations in the current database.",
+    )
+    compare_parser.add_argument("reference", nargs="+", help="passage reference, such as 'John 3:16'")
+    compare_parser.add_argument(
+        "--versions",
+        help="comma-separated translation codes to compare; defaults to all available translations",
+    )
+    compare_parser.set_defaults(func=compare_command)
+
 
     bookmark_parser = subparsers.add_parser(
         "bookmark",
@@ -186,6 +198,7 @@ def show_placeholder(_args: argparse.Namespace) -> int:
     print("Try: bible John 3:16")
     print("Try: bible read John 3")
     print("Try: bible search shepherd")
+    print("Try: bible compare John 3:16")
     print("Try: bible chapters John")
     print("Try: bible bookmark add John 3:16")
     print("Try: bible note add John 3:16 \"study note\"")
@@ -239,10 +252,16 @@ def show_chapters(args: argparse.Namespace) -> int:
     return 0
 
 
-def render_verses(reference: BibleReference, verses: list[Verse], options: RenderOptions) -> None:
+def render_verses(
+    reference: BibleReference,
+    verses: list[Verse],
+    options: RenderOptions,
+    *,
+    translation: str = DEFAULT_TRANSLATION,
+) -> None:
     """Render a passage using the CLI passage renderer."""
     renderer = PassageRenderer(color=options.color, theme=options.theme)
-    print(renderer.render(reference, verses, translation=DEFAULT_TRANSLATION))
+    print(renderer.render(reference, verses, translation=translation))
 
 
 def _open_read_connection(db_path: Path | None):
@@ -253,18 +272,23 @@ def _open_read_connection(db_path: Path | None):
     return connection
 
 
-def _lookup(reference: BibleReference, db_path: Path | None = None) -> list[Verse]:
+def _lookup(
+    reference: BibleReference,
+    db_path: Path | None = None,
+    *,
+    translation_code: str = DEFAULT_TRANSLATION,
+) -> list[Verse]:
     connection = _open_read_connection(db_path)
     try:
         repository = BibleRepository(connection)
         if reference.is_chapter:
             return repository.get_chapter(
-                translation_code=DEFAULT_TRANSLATION,
+                translation_code=translation_code,
                 book_name=reference.book,
                 chapter=reference.chapter,
             )
         return repository.get_verse_range(
-            translation_code=DEFAULT_TRANSLATION,
+            translation_code=translation_code,
             book_name=reference.book,
             chapter=reference.chapter,
             start_verse=reference.start_verse or 1,
@@ -315,6 +339,59 @@ def read_reference_command(args: argparse.Namespace) -> int:
 
     render_verses(reference, verses, options)
     return 0
+
+
+def compare_command(args: argparse.Namespace) -> int:
+    """Compare a passage across translations in the selected database."""
+    options = getattr(args, "render_options", RenderOptions())
+    raw_reference = " ".join(args.reference)
+    try:
+        reference = parse_reference(raw_reference)
+    except ReferenceParseError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+
+    connection = _open_read_connection(options.db_path)
+    try:
+        repository = BibleRepository(connection)
+        available_codes = [translation.code for translation in repository.list_translations()]
+    finally:
+        connection.close()
+
+    requested_codes = _parse_requested_versions(args.versions, available_codes)
+    if not requested_codes:
+        print("Error: no translations are available to compare.", file=sys.stderr)
+        return 1
+
+    unknown_codes = [code for code in requested_codes if code not in available_codes]
+    if unknown_codes:
+        print("Error: unknown translation code(s): " + ", ".join(unknown_codes), file=sys.stderr)
+        return 2
+
+    passages = {
+        code: _lookup(reference, options.db_path, translation_code=code)
+        for code in requested_codes
+    }
+    if not any(passages.values()):
+        location = "selected database" if options.db_path is not None else "ASV sample fixture"
+        print(f"Reference not found in the {location}: {reference.label()}", file=sys.stderr)
+        return 1
+
+    renderer = ComparisonRenderer(color=options.color, theme=options.theme)
+    print(renderer.render(reference, passages))
+    return 0
+
+
+def _parse_requested_versions(raw_versions: str | None, available_codes: list[str]) -> list[str]:
+    """Return requested translation codes, preserving user order."""
+    if raw_versions is None:
+        return available_codes
+    codes = [code.strip().upper() for code in raw_versions.split(",") if code.strip()]
+    deduped: list[str] = []
+    for code in codes:
+        if code not in deduped:
+            deduped.append(code)
+    return deduped
 
 
 def search_command(args: argparse.Namespace) -> int:

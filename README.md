@@ -29,6 +29,8 @@ bible books
 bible John 3:16
 bible read John 3
 bible search shepherd
+bible compare John 3:16
+bible compare Romans 8:28-30 --versions ASV
 bible chapters John
 bible chapters Ps
 bible --no-color Ps 23
@@ -42,7 +44,7 @@ bible --db /tmp/bible.sqlite3 John 3:16
 
 ## Current development fixture
 
-The app currently uses a tiny in-memory ASV fixture by default to prove the SQLite schema, reference parsing, rendering, import, search, navigation, and local study-data layers. The fixture currently includes Psalm 23:1-4, John 3:16-17, and Romans 8:28-30. Stage 6 adds explicit `--db` import/read commands for local ASV source or bundle files; a default installed user database will come later.
+The app currently uses a tiny in-memory ASV fixture by default to prove the SQLite schema, reference parsing, rendering, import, search, navigation, comparison, and local study-data layers. The fixture currently includes Psalm 23:1-4, John 3:16-17, and Romans 8:28-30. Stage 6 adds explicit `--db` import/read commands for local ASV source or bundle files; a default installed user database will come later.
 
 ## Planning documents
 

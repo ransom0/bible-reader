@@ -225,3 +225,12 @@ Adds `bible chapters <book>` as the first navigation helper beyond the existing 
 ## Stage 9 implementation note
 
 Stage 9 adds a separate JSON-backed study-data store for bookmarks and notes. User study data is kept outside the Scripture SQLite database and can be redirected with `--study PATH` for tests, backups, or experiments.
+
+
+## Stage 10 implementation note
+
+Stage 10 adds `bible compare <reference>` with stacked comparison output. The
+first CLI comparison view favors narrow-terminal readability and testability over
+side-by-side layout. The SQLite model already supports multiple translation codes,
+so this stage proves comparison behavior with the sample ASV fixture and an
+additional test translation bundle.

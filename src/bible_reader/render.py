@@ -89,3 +89,51 @@ class SearchRenderer:
     @staticmethod
     def _single_line(text: str) -> str:
         return " / ".join(line.strip() for line in text.splitlines() if line.strip())
+
+
+class ComparisonRenderer:
+    """Render one passage across multiple translations.
+
+    The first comparison view is intentionally stacked instead of side-by-side.
+    Stacked output is readable in narrow terminals and gives the future TUI a
+    stable, testable comparison data path before split-pane rendering arrives.
+    """
+
+    def __init__(self, *, color: bool = True, theme: str = "classic") -> None:
+        self.color = color and theme != "plain"
+        self.theme = theme
+
+    def render(self, reference: BibleReference, passages: dict[str, Iterable[Verse]]) -> str:
+        """Return a formatted comparison for one reference."""
+        lines: list[str] = [self._header(f"Compare: {reference.label()}"), ""]
+        for translation, verses in passages.items():
+            verse_list = list(verses)
+            lines.append(self._translation_header(translation))
+            if not verse_list:
+                lines.append("  Not available for this reference.")
+            else:
+                for verse in verse_list:
+                    lines.extend(self._verse_lines(verse))
+            lines.append("")
+
+        while lines and lines[-1] == "":
+            lines.pop()
+        return "\n".join(lines)
+
+    def _header(self, text: str) -> str:
+        if not self.color:
+            return text
+        return f"\033[1m{text}\033[0m"
+
+    def _translation_header(self, text: str) -> str:
+        if not self.color:
+            return text
+        return f"\033[36m{text}\033[0m"
+
+    @staticmethod
+    def _verse_lines(verse: Verse) -> list[str]:
+        text_lines = verse.text.splitlines() or [""]
+        rendered = [f"  {verse.verse:>3}  {text_lines[0]}"]
+        for continuation in text_lines[1:]:
+            rendered.append(f"       {continuation}")
+        return rendered
