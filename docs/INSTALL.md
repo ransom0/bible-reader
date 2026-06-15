@@ -12,6 +12,12 @@ python -m pip install -e . pytest
 python -m pytest
 ```
 
+Optional direnv setup, after `.venv` exists:
+
+```bash
+direnv allow
+```
+
 Smoke check:
 
 ```bash
@@ -21,6 +27,8 @@ bible doctor
 bible books
 bible --no-color John 3:16
 ```
+
+See `docs/DEV_ENVIRONMENT.md` for the full local development workflow.
 
 ## pipx install from GitHub
 

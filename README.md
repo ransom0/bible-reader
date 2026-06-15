@@ -20,6 +20,15 @@ python -m bible_reader --help
 python -m bible_reader --version
 ```
 
+Optional `direnv` workflow, after `.venv` exists:
+
+```bash
+direnv allow
+cd ..
+cd bible-reader
+bible --version
+```
+
 After editable install, the console command is available:
 
 ```bash
@@ -57,6 +66,7 @@ The app currently uses a tiny in-memory ASV fixture by default to prove the SQLi
 - `docs/INSTALL.md`
 - `docs/SMOKE_TEST.md`
 - `docs/VERSIONING.md`
+- `docs/DEV_ENVIRONMENT.md`
 - `CHANGELOG.md`
 
 ## Data sources
@@ -83,4 +93,4 @@ pipx install git+ssh://git@github.com/ransom0/bible-reader.git
 bible doctor
 ```
 
-See `docs/INSTALL.md` and `docs/SMOKE_TEST.md` for fuller release checks.
+See `docs/INSTALL.md`, `docs/DEV_ENVIRONMENT.md`, and `docs/SMOKE_TEST.md` for fuller release checks.

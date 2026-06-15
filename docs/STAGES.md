@@ -245,3 +245,9 @@ Stage 11 records the TUI foundation without adding an interactive dependency yet
 ## Stage 12 status
 
 Adds release documentation and a lightweight `bible doctor` command for smoke tests. The project remains pre-alpha and intentionally uses explicit local data paths for imports and study data.
+
+## Stage 13 — dev environment polish
+
+- Add `.envrc` for the local direnv workflow.
+- Document the venv/direnv setup.
+- Keep dependency installation explicit and testable.

@@ -111,3 +111,16 @@ Returned files should use matching names:
 bible-reader-stage0-project-spec.patch
 bible-reader-stage0-project-spec-patched.tar.gz
 ```
+
+## Local environment convention
+
+Use a project-local virtual environment at `.venv/`. The repository includes `.envrc` for `direnv`; run `direnv allow` only after creating `.venv`.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e . pytest
+direnv allow
+```
+
+Patch tarballs should continue to exclude `.venv`, `.pytest_cache`, and `__pycache__`.
