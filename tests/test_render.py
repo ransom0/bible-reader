@@ -46,3 +46,27 @@ def test_renderer_can_emit_ansi_emphasis_for_classic_theme():
 
     assert "\033[1mJohn 3:16 (ASV)\033[0m" in passage
     assert "\033[2m 16\033[0m" in passage
+
+
+def test_renderer_wraps_long_prose_with_aligned_continuation_lines():
+    renderer = PassageRenderer(color=False, theme="plain", width=44)
+    passage = renderer.render(
+        BibleReference(book="John", chapter=3, start_verse=16, end_verse=16),
+        [
+            Verse(
+                "ASV",
+                "John",
+                3,
+                16,
+                "For God so loved the world, that he gave his only begotten Son, that whosoever believeth on him should not perish, but have eternal life.",
+                True,
+            )
+        ],
+        translation="ASV",
+    )
+
+    lines = passage.splitlines()
+    assert lines[2] == " 16  For God so loved the world, that he"
+    assert lines[3] == "     gave his only begotten Son, that"
+    assert lines[4] == "     whosoever believeth on him should not"
+    assert all(len(line) <= 44 for line in lines if line)

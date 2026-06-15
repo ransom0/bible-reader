@@ -396,3 +396,21 @@ def test_doctor_reports_default_database_path(tmp_path, monkeypatch, capsys):
     assert main(["doctor"]) == 0
     output = capsys.readouterr().out
     assert "default local database" in output
+
+
+def test_width_option_wraps_direct_reference_output(capsys):
+    assert main(["--no-color", "--width", "44", "John", "3:16"]) == 0
+
+    output = capsys.readouterr().out
+    lines = output.splitlines()
+    assert "John 3:16 (ASV)" in lines[0]
+    assert " 16  For God so loved the world, that he" in lines
+    assert "     gave his only begotten Son, that" in lines
+    assert all(len(line) <= 44 for line in lines if line)
+
+
+def test_width_option_rejects_too_narrow_value(capsys):
+    assert main(["--width", "12", "John", "3:16"]) == 2
+
+    error = capsys.readouterr().err
+    assert "--width must be 20 or greater" in error

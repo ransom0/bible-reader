@@ -266,3 +266,15 @@ Adds release documentation and a lightweight `bible doctor` command for smoke te
 - Accept local eBible-style ASV USFX zip archives in addition to raw USFX XML files.
 - Allow `bible init-db --usfx-source SOURCE` to build the default SQLite DB from a full local ASV source.
 - Keep tests on tiny fixtures; do not commit generated SQLite databases or large downloaded source archives.
+
+
+## Stage 19 — Display width wrapping
+
+Improve long-line CLI readability.
+
+Deliverables:
+
+- `--width COLS` global option
+- wrapped verse prose with aligned continuation lines
+- stable default display width for automated tests and non-interactive shells
+- regression tests for long prose verses

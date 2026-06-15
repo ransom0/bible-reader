@@ -36,6 +36,7 @@ class RenderOptions:
     theme: str = "classic"
     db_path: Path | None = None
     study_path: Path | None = None
+    width: int | None = None
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -69,6 +70,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--study",
         metavar="PATH",
         help="read/write bookmarks and notes from this JSON study-data file",
+    )
+    parser.add_argument(
+        "--width",
+        type=int,
+        metavar="COLS",
+        help="wrap passage/search output to this terminal width",
     )
 
     subparsers = parser.add_subparsers(dest="command")
@@ -272,6 +279,7 @@ def doctor_command(args: argparse.Namespace) -> int:
     print(f"database: {db_label}")
     print(f"study file: {study_label}")
     print(f"theme: {options.theme}")
+    print(f"width: {options.width or 'auto'}")
     print(f"color: {'on' if options.color else 'off'}")
     print("status: ok")
     return 0
@@ -330,7 +338,7 @@ def render_verses(
     translation: str = DEFAULT_TRANSLATION,
 ) -> None:
     """Render a passage using the CLI passage renderer."""
-    renderer = PassageRenderer(color=options.color, theme=options.theme)
+    renderer = PassageRenderer(color=options.color, theme=options.theme, width=options.width)
     print(renderer.render(reference, verses, translation=translation))
 
 
@@ -454,7 +462,7 @@ def compare_command(args: argparse.Namespace) -> int:
         print(f"Reference not found in the {location}: {reference.label()}", file=sys.stderr)
         return 1
 
-    renderer = ComparisonRenderer(color=options.color, theme=options.theme)
+    renderer = ComparisonRenderer(color=options.color, theme=options.theme, width=options.width)
     print(renderer.render(reference, passages))
     return 0
 
@@ -502,7 +510,7 @@ def search_command(args: argparse.Namespace) -> int:
     finally:
         connection.close()
 
-    renderer = SearchRenderer(color=options.color, theme=options.theme)
+    renderer = SearchRenderer(color=options.color, theme=options.theme, width=options.width)
     print(renderer.render(query, results, translation=DEFAULT_TRANSLATION))
     return 0 if results else 1
 
@@ -698,6 +706,7 @@ def extract_render_options(args_list: list[str]) -> tuple[list[str], RenderOptio
     theme = "classic"
     db_path: Path | None = None
     study_path: Path | None = None
+    width: int | None = None
     index = 0
     while index < len(args_list):
         item = args_list[index]
@@ -707,7 +716,7 @@ def extract_render_options(args_list: list[str]) -> tuple[list[str], RenderOptio
             continue
         if item == "--theme":
             if index + 1 >= len(args_list):
-                return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path), "--theme requires a value."
+                return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path, width=width), "--theme requires a value."
             theme = args_list[index + 1]
             index += 2
             continue
@@ -717,7 +726,7 @@ def extract_render_options(args_list: list[str]) -> tuple[list[str], RenderOptio
             continue
         if item == "--study":
             if index + 1 >= len(args_list):
-                return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path), "--study requires a value."
+                return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path, width=width), "--study requires a value."
             study_path = Path(args_list[index + 1]).expanduser()
             index += 2
             continue
@@ -727,7 +736,7 @@ def extract_render_options(args_list: list[str]) -> tuple[list[str], RenderOptio
             continue
         if item == "--db":
             if index + 1 >= len(args_list):
-                return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path), "--db requires a value."
+                return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path, width=width), "--db requires a value."
             db_path = Path(args_list[index + 1]).expanduser()
             index += 2
             continue
@@ -735,14 +744,32 @@ def extract_render_options(args_list: list[str]) -> tuple[list[str], RenderOptio
             db_path = Path(item.split("=", 1)[1]).expanduser()
             index += 1
             continue
+        if item == "--width":
+            if index + 1 >= len(args_list):
+                return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path, width=width), "--width requires a value."
+            try:
+                width = int(args_list[index + 1])
+            except ValueError:
+                return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path, width=width), "--width must be an integer."
+            index += 2
+            continue
+        if item.startswith("--width="):
+            try:
+                width = int(item.split("=", 1)[1])
+            except ValueError:
+                return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path, width=width), "--width must be an integer."
+            index += 1
+            continue
         cleaned.append(item)
         index += 1
 
     if theme not in THEMES:
-        return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path), (
+        return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path, width=width), (
             f"Unknown theme: {theme}. Choose one of: {', '.join(sorted(THEMES))}."
         )
-    return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path), None
+    if width is not None and width < 20:
+        return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path, width=width), "--width must be 20 or greater."
+    return cleaned, RenderOptions(color=color, theme=theme, db_path=db_path, study_path=study_path, width=width), None
 
 
 def main(argv: Sequence[str] | None = None) -> int:

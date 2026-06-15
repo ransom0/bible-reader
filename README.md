@@ -46,6 +46,7 @@ bible tui
 bible chapters John
 bible chapters Ps
 bible --no-color Ps 23
+bible --no-color --width 72 John 3:16
 bible --study /tmp/bible-study.json bookmark add John 3:16 --label Gospel
 bible --study /tmp/bible-study.json bookmarks
 bible --study /tmp/bible-study.json note add "John 3:16" "Do not detach from context"
