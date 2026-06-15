@@ -14,3 +14,4 @@ def isolate_user_data_home(tmp_path, monkeypatch):
     smoke test.
     """
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg-data"))
+    monkeypatch.setenv("BIBLE_READER_TEST_FORCE_SAMPLE", "1")

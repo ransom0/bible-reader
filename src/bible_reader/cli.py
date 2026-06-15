@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from collections.abc import Sequence
 from dataclasses import dataclass
+import os
 from pathlib import Path
 import sys
 
@@ -335,6 +336,8 @@ def render_verses(
 
 def _open_read_connection(db_path: Path | None):
     if db_path is None:
+        if os.environ.get("BIBLE_READER_TEST_FORCE_SAMPLE") == "1":
+            return create_sample_connection()
         default_db = default_database_path()
         if default_db.exists():
             connection = connect_database(default_db)
