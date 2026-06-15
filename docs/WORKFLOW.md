@@ -41,10 +41,18 @@ patch -p1 < ~/Downloads/bible-reader-stage-name.patch
 
 The gate will grow as the app grows.
 
-Initial gate:
+Initial editable-install gate:
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e . pytest
 python -m pytest
+python -m bible_reader --help
+python -m bible_reader --version
+bible --help
+bible --version
 ```
 
 After the CLI exists:

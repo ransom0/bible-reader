@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bible-reader"
+version = "0.1.0"
+description = "Offline-first Python CLI Bible reader, search, notes, and study tool."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Ben Johnson" }
+]
+keywords = ["bible", "cli", "study", "offline", "sqlite"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Religion",
+  "Topic :: Utilities",
+]
+dependencies = []
+
+[project.scripts]
+bible = "bible_reader.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/ransom0/bible-reader"
+Repository = "https://github.com/ransom0/bible-reader"
+Issues = "https://github.com/ransom0/bible-reader/issues"
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+pythonpath = ["src"]
