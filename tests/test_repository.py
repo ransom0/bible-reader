@@ -77,3 +77,21 @@ def test_repository_gets_chapter_verses_in_order():
         connection.close()
 
     assert [verse.verse for verse in verses] == [28, 29, 30]
+
+
+def test_repository_gets_verse_range_with_parameterized_lookup():
+    connection = create_sample_connection()
+    try:
+        repository = BibleRepository(connection)
+        verses = repository.get_verse_range(
+            translation_code="ASV",
+            book_name="Romans",
+            chapter=8,
+            start_verse=28,
+            end_verse=30,
+        )
+    finally:
+        connection.close()
+
+    assert [verse.verse for verse in verses] == [28, 29, 30]
+    assert "work together for good" in verses[0].text

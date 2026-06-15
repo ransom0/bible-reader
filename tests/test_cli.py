@@ -9,8 +9,9 @@ def test_main_without_args_prints_placeholder(capsys):
 
     output = capsys.readouterr().out
     assert "bible-reader is installed" in output
-    assert "bible --help" in output
     assert "bible books" in output
+    assert "bible John 3:16" in output
+    assert "bible read John 3" in output
 
 
 def test_help_output(capsys):
@@ -41,3 +42,44 @@ def test_books_command_lists_sample_fixture_books(capsys):
     assert "Books available in the ASV sample fixture" in output
     assert "John" in output
     assert "Romans" in output
+
+
+def test_lookup_single_verse_by_positional_reference(capsys):
+    assert main(["John", "3:16"]) == 0
+
+    output = capsys.readouterr().out
+    assert "John 3:16 (ASV)" in output
+    assert "For God so loved the world" in output
+
+
+def test_lookup_range_by_positional_reference(capsys):
+    assert main(["Romans", "8:28-30"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Romans 8:28-30 (ASV)" in output
+    assert "work together for good" in output
+    assert "also glorified" in output
+
+
+def test_read_chapter_command(capsys):
+    assert main(["read", "John", "3"]) == 0
+
+    output = capsys.readouterr().out
+    assert "John 3 (ASV)" in output
+    assert "For God so loved the world" in output
+    assert "world should be saved" in output
+
+
+def test_lookup_missing_reference_reports_error(capsys):
+    assert main(["John", "3:99"]) == 1
+
+    error = capsys.readouterr().err
+    assert "Reference not found" in error
+    assert "John 3:99" in error
+
+
+def test_bad_reference_reports_parse_error(capsys):
+    assert main(["not", "a", "reference"]) == 2
+
+    error = capsys.readouterr().err
+    assert "Could not parse reference" in error

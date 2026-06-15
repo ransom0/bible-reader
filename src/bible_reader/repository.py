@@ -82,6 +82,40 @@ class BibleRepository:
             text=row["text"],
         )
 
+    def get_verse_range(
+        self,
+        *,
+        translation_code: str,
+        book_name: str,
+        chapter: int,
+        start_verse: int,
+        end_verse: int,
+    ) -> list[Verse]:
+        """Return verses in an inclusive range sorted by verse number."""
+        rows = self._connection.execute(
+            """
+            SELECT v.translation_code, b.name AS book_name, v.chapter, v.verse, v.text
+            FROM verses AS v
+            JOIN books AS b ON b.id = v.book_id
+            WHERE v.translation_code = ?
+              AND b.name = ?
+              AND v.chapter = ?
+              AND v.verse BETWEEN ? AND ?
+            ORDER BY v.verse
+            """,
+            (translation_code, book_name, chapter, start_verse, end_verse),
+        ).fetchall()
+        return [
+            Verse(
+                translation=row["translation_code"],
+                book=row["book_name"],
+                chapter=row["chapter"],
+                verse=row["verse"],
+                text=row["text"],
+            )
+            for row in rows
+        ]
+
     def get_chapter(
         self,
         *,
