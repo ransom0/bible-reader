@@ -79,7 +79,10 @@ def test_convert_usfx_rejects_unknown_book_code(tmp_path: Path):
 def test_convert_asv_source_accepts_ebible_style_usfx_zip(tmp_path: Path):
     source_zip = tmp_path / "eng-asv_usfx.zip"
     with ZipFile(source_zip, "w") as archive:
+        archive.writestr("BookNames.xml", '<BookNames><book code="GEN" short="Genesis" /></BookNames>')
+        archive.writestr("eng-asvmetadata.xml", "<metadata><title>ASV</title></metadata>")
         archive.write(FIXTURE_PATH, "eng-asv_usfx.xml")
+        archive.writestr("eng-asv-VernacularParms.xml", "<params />")
 
     bundle = convert_asv_source_to_bundle(source_zip)
     summary = summarize_bundle(bundle)
@@ -89,6 +92,24 @@ def test_convert_asv_source_accepts_ebible_style_usfx_zip(tmp_path: Path):
     assert bundle["verses"][2]["book"] == "John"
 
 
+def test_convert_asv_source_ignores_front_matter_books(tmp_path: Path):
+    source = tmp_path / "with-front-matter.usfx"
+    source.write_text(
+        """<usfx>
+        <book id="FRT"><p>This is front matter.</p></book>
+        <book id="INT"><p>This is preface material.</p></book>
+        <book id="GEN"><c id="1" /><p><v id="1" />In the beginning God created.</p></book>
+        </usfx>""",
+        encoding="utf-8",
+    )
+
+    bundle = convert_asv_source_to_bundle(source)
+
+    assert len(bundle["verses"]) == 1
+    assert bundle["verses"][0]["book"] == "Genesis"
+    assert bundle["verses"][0]["text"] == "In the beginning God created."
+
+
 def test_convert_asv_source_rejects_zip_without_usfx(tmp_path: Path):
     source_zip = tmp_path / "not-usfx.zip"
     with ZipFile(source_zip, "w") as archive:
@@ -96,3 +117,23 @@ def test_convert_asv_source_rejects_zip_without_usfx(tmp_path: Path):
 
     with pytest.raises(ImportErrorDetail, match="No USFX XML file found"):
         convert_asv_source_to_bundle(source_zip)
+
+def test_convert_asv_source_skips_blank_omitted_verse_markers(tmp_path: Path):
+    source = tmp_path / "blank-verse.usfx"
+    source.write_text(
+        """<usfx>
+        <book id="MAT"><c id="17" />
+            <p><v id="20" />Faith as a grain of mustard seed.</p>
+            <p><v id="21" /></p>
+            <p><v id="22" />And while they abode in Galilee.</p>
+        </book>
+        </usfx>""",
+        encoding="utf-8",
+    )
+
+    bundle = convert_asv_source_to_bundle(source)
+
+    references = [(verse["book"], verse["chapter"], verse["verse"]) for verse in bundle["verses"]]
+    assert references == [("Matthew", 17, 20), ("Matthew", 17, 22)]
+    assert all(verse["text"] for verse in bundle["verses"])
+

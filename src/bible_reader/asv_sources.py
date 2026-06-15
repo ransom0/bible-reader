@@ -93,6 +93,7 @@ CANONICAL_BOOKS: tuple[tuple[str, int, str, str, int], ...] = (
 )
 
 BOOK_BY_USFM = {code: (book_id, name, testament, order) for code, book_id, name, testament, order in CANONICAL_BOOKS}
+IGNORED_USFX_BOOK_CODES = {"FRT", "INT", "BAK", "OTH", "GLO", "TDX", "NDX", "XXA"}
 
 
 def asv_book_records() -> list[dict[str, Any]]:
@@ -189,11 +190,19 @@ def _parse_usfx_zip(source_path: Path) -> ET.Element:
 
 
 def _choose_usfx_member(candidates: list[str]) -> str:
-    def score(name: str) -> tuple[int, int, str]:
-        lowered = name.lower()
-        preferred = 0 if "eng-asv" in lowered or "asv" in lowered else 1
-        suffix_rank = 0 if lowered.endswith(".usfx") else 1
-        return preferred, suffix_rank, name
+    """Choose the actual USFX Scripture document from an eBible-style zip.
+
+    eBible source zips include support XML files such as BookNames.xml,
+    metadata, and vernacular parameter files alongside the Scripture source.
+    Prefer filenames that clearly identify the USFX source.
+    """
+
+    def score(name: str) -> tuple[int, int, int, str]:
+        base = Path(name).name.lower()
+        explicit_usfx = 0 if "usfx" in base else 1
+        scripture_name = 0 if base.endswith("_usfx.xml") or base.endswith(".usfx") else 1
+        metadata_penalty = 1 if any(token in base for token in ("booknames", "metadata", "vernacular")) else 0
+        return explicit_usfx, scripture_name, metadata_penalty, name
 
     return sorted(candidates, key=score)[0]
 
@@ -206,25 +215,37 @@ class _UsfxState:
         self.current_text: list[str] = []
         self.current_paragraph_break = True
         self.pending_paragraph_break = True
+        self.skip_current_book = False
         self.verses: list[dict[str, Any]] = []
 
     def set_book(self, code: str) -> None:
         self.flush_verse()
         normalized = code.strip().upper()
+        if normalized in IGNORED_USFX_BOOK_CODES:
+            self.current_book = None
+            self.current_chapter = None
+            self.skip_current_book = True
+            self.pending_paragraph_break = True
+            return
         if normalized not in BOOK_BY_USFM:
             raise ImportErrorDetail(f"Unsupported USFX book code: {code!r}.")
         _book_id, name, _testament, _order = BOOK_BY_USFM[normalized]
         self.current_book = name
         self.current_chapter = None
+        self.skip_current_book = False
         self.pending_paragraph_break = True
 
     def set_chapter(self, value: str) -> None:
         self.flush_verse()
+        if self.skip_current_book:
+            return
         self.current_chapter = _positive_int(value, "chapter")
         self.pending_paragraph_break = True
 
     def start_verse(self, value: str) -> None:
         self.flush_verse()
+        if self.skip_current_book:
+            return
         if self.current_book is None or self.current_chapter is None:
             raise ImportErrorDetail("USFX verse appeared before book and chapter markers.")
         self.current_verse = _positive_int(value, "verse")
@@ -257,9 +278,13 @@ class _UsfxState:
             return
         text = _joined_text(self.current_text)
         if not text:
-            raise ImportErrorDetail(
-                f"Verse text must not be blank: {self.current_book} {self.current_chapter}:{self.current_verse}."
-            )
+            # Some source files contain verse markers for omitted textual-tradition
+            # verses. Do not import a blank verse record; keep validation strict
+            # for normalized bundles.
+            self.current_verse = None
+            self.current_text = []
+            self.current_paragraph_break = False
+            return
         self.verses.append(
             {
                 "book": self.current_book,
