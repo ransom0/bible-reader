@@ -237,6 +237,7 @@ def test_search_command_finds_sample_fixture_matches(capsys):
 
     output = capsys.readouterr().out
     assert "Search: shepherd (ASV)" in output
+    assert "Showing 1 result." in output
     assert "Psalms 23:1" in output
     assert "Jehovah is my shepherd" in output
     assert "\033" not in output
@@ -256,6 +257,7 @@ def test_search_command_returns_one_when_no_matches(capsys):
 
     output = capsys.readouterr().out
     assert "No matches found." in output
+    assert "Try a shorter phrase" in output
 
 
 def test_search_command_rejects_bad_limit(capsys):
@@ -263,6 +265,15 @@ def test_search_command_rejects_bad_limit(capsys):
 
     error = capsys.readouterr().err
     assert "--limit must be 1 or greater" in error
+
+
+def test_search_command_respects_result_limit(capsys):
+    assert main(["--no-color", "search", "world", "--book", "John", "--limit", "1"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Showing 1 result." in output
+    assert "John 3:16" in output
+    assert "John 3:17" not in output
 
 
 def test_chapters_command_lists_available_chapters(capsys):

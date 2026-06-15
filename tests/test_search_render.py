@@ -16,7 +16,9 @@ def test_search_renderer_outputs_reference_first_lines():
     output = SearchRenderer(color=False).render("shepherd", results, translation="ASV")
 
     assert "Search: shepherd (ASV)" in output
-    assert "Psalms 23:1  Jehovah is my shepherd; / I shall not want." in output
+    assert "Showing 1 result." in output
+    assert "Psalms 23:1" in output
+    assert "  Jehovah is my shepherd; / I shall not want." in output
     assert "\033" not in output
 
 
@@ -25,3 +27,20 @@ def test_search_renderer_reports_no_matches():
 
     assert "Search: zzzz (ASV)" in output
     assert "No matches found." in output
+    assert "Try a shorter phrase" in output
+
+
+def test_search_renderer_wraps_under_reference():
+    connection = create_sample_connection()
+    try:
+        repository = BibleRepository(connection)
+        results = repository.search_verses(translation_code="ASV", query="world", book_name="John")
+    finally:
+        connection.close()
+
+    output = SearchRenderer(color=False, width=44).render("world", results, translation="ASV")
+
+    assert "Showing 2 results." in output
+    assert "John 3:16" in output
+    assert "  For God so loved the world," in output
+    assert "  his only begotten Son" in output

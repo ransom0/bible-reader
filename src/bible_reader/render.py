@@ -121,15 +121,25 @@ class SearchRenderer:
         """Return formatted search results."""
         result_list = list(results)
         header = f"Search: {query} ({translation})"
-        lines: list[str] = [self._header(header), ""]
+        lines: list[str] = [self._header(header)]
         if not result_list:
-            lines.append("No matches found.")
+            lines.extend(["", "No matches found.", "Try a shorter phrase or remove book filters."])
             return "\n".join(lines)
 
-        for result in result_list:
-            prefix = f"{self._reference(result.reference_label)}  "
-            continuation_prefix = " " * (len(result.reference_label) + 2)
-            lines.extend(_wrap_prefixed_line(self._single_line(result.verse.text), prefix=prefix, continuation_prefix=continuation_prefix, width=self.width))
+        count_label = "result" if len(result_list) == 1 else "results"
+        lines.extend([f"Showing {len(result_list)} {count_label}.", ""])
+        for index, result in enumerate(result_list):
+            if index > 0:
+                lines.append("")
+            lines.append(self._reference(result.reference_label))
+            lines.extend(
+                _wrap_prefixed_line(
+                    self._single_line(result.verse.text),
+                    prefix="  ",
+                    continuation_prefix="  ",
+                    width=self.width,
+                )
+            )
         return "\n".join(lines)
 
     def _header(self, text: str) -> str:

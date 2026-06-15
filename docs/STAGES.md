@@ -278,3 +278,15 @@ Deliverables:
 - wrapped verse prose with aligned continuation lines
 - stable default display width for automated tests and non-interactive shells
 - regression tests for long prose verses
+
+
+## Stage 20 — Search output polish
+
+Improve search result readability without turning search into a topical proof-text generator.
+
+Deliverables:
+
+- reference-on-its-own-line search results
+- wrapped result text indented below each reference
+- clearer no-match guidance
+- regression tests for width-aware search rendering and result limits
