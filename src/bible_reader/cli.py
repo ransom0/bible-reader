@@ -24,7 +24,7 @@ from .tui import render_tui_plan
 
 PROGRAM_NAME = "bible"
 DEFAULT_TRANSLATION = "ASV"
-KNOWN_COMMANDS = {"books", "chapters", "read", "search", "compare", "tui", "doctor", "bookmark", "bookmarks", "note", "notes", "init-db", "import-bundle", "import-usfx"}
+KNOWN_COMMANDS = {"books", "chapters", "read", "next", "previous", "search", "compare", "tui", "doctor", "bookmark", "bookmarks", "note", "notes", "init-db", "import-bundle", "import-usfx"}
 THEMES = {"classic", "plain"}
 
 
@@ -102,6 +102,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     read_parser.add_argument("reference", nargs="+", help="chapter reference, such as 'John 3'")
     read_parser.set_defaults(func=read_reference_command)
+
+    next_parser = subparsers.add_parser(
+        "next",
+        help="read the next available chapter",
+        description="Read the next available chapter after a chapter reference.",
+    )
+    next_parser.add_argument("reference", nargs="+", help="chapter reference, such as 'John 3'")
+    next_parser.set_defaults(func=next_chapter_command)
+
+    previous_parser = subparsers.add_parser(
+        "previous",
+        help="read the previous available chapter",
+        description="Read the previous available chapter before a chapter reference.",
+    )
+    previous_parser.add_argument("reference", nargs="+", help="chapter reference, such as 'John 3'")
+    previous_parser.set_defaults(func=previous_chapter_command)
 
     search_parser = subparsers.add_parser(
         "search",
@@ -242,6 +258,8 @@ def show_placeholder(_args: argparse.Namespace) -> int:
     print("Try: bible books")
     print("Try: bible John 3:16")
     print("Try: bible read John 3")
+    print("Try: bible next John 3")
+    print("Try: bible previous John 3")
     print("Try: bible search shepherd")
     print("Try: bible compare John 3:16")
     print("Try: bible doctor")
@@ -407,15 +425,74 @@ def read_reference_command(args: argparse.Namespace) -> int:
     options = getattr(args, "render_options", RenderOptions())
     raw_reference = " ".join(args.reference)
     try:
-        reference = parse_reference(raw_reference)
+        reference = _parse_chapter_reference(raw_reference, command="read")
     except ReferenceParseError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 2
 
-    if not reference.is_chapter:
-        print("Error: read expects a chapter reference, such as 'John 3'.", file=sys.stderr)
+    return _read_chapter(reference, options, show_navigation=True)
+
+
+def next_chapter_command(args: argparse.Namespace) -> int:
+    """Read the next available chapter after a chapter reference."""
+    options = getattr(args, "render_options", RenderOptions())
+    raw_reference = " ".join(args.reference)
+    try:
+        reference = _parse_chapter_reference(raw_reference, command="next")
+    except ReferenceParseError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
         return 2
 
+    target = _adjacent_chapter(reference, options.db_path, direction="next")
+    if target is None:
+        print(f"No next chapter is available after {reference.label()}.", file=sys.stderr)
+        return 1
+    return _read_chapter(target, options, show_navigation=True)
+
+
+def previous_chapter_command(args: argparse.Namespace) -> int:
+    """Read the previous available chapter before a chapter reference."""
+    options = getattr(args, "render_options", RenderOptions())
+    raw_reference = " ".join(args.reference)
+    try:
+        reference = _parse_chapter_reference(raw_reference, command="previous")
+    except ReferenceParseError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+
+    target = _adjacent_chapter(reference, options.db_path, direction="previous")
+    if target is None:
+        print(f"No previous chapter is available before {reference.label()}.", file=sys.stderr)
+        return 1
+    return _read_chapter(target, options, show_navigation=True)
+
+
+def _parse_chapter_reference(raw_reference: str, *, command: str) -> BibleReference:
+    reference = parse_reference(raw_reference)
+    if not reference.is_chapter:
+        raise ReferenceParseError(f"{command} expects a chapter reference, such as 'John 3'.")
+    return reference
+
+
+def _adjacent_chapter(reference: BibleReference, db_path: Path | None, *, direction: str) -> BibleReference | None:
+    connection = _open_read_connection(db_path)
+    try:
+        repository = BibleRepository(connection)
+        adjacent = repository.adjacent_chapter(
+            book_name=reference.book,
+            chapter=reference.chapter,
+            direction=direction,
+        )
+    finally:
+        connection.close()
+
+    if adjacent is None:
+        return None
+    book_name, chapter = adjacent
+    return BibleReference(book=book_name, chapter=chapter)
+
+
+def _read_chapter(reference: BibleReference, options: RenderOptions, *, show_navigation: bool) -> int:
     verses = _lookup(reference, options.db_path)
     if not verses:
         location = "selected database" if options.db_path is not None else "ASV sample fixture"
@@ -423,7 +500,23 @@ def read_reference_command(args: argparse.Namespace) -> int:
         return 1
 
     render_verses(reference, verses, options)
+    if show_navigation:
+        hints = _navigation_hints(reference, options.db_path)
+        if hints:
+            print()
+            print(hints)
     return 0
+
+
+def _navigation_hints(reference: BibleReference, db_path: Path | None) -> str:
+    previous_ref = _adjacent_chapter(reference, db_path, direction="previous")
+    next_ref = _adjacent_chapter(reference, db_path, direction="next")
+    parts: list[str] = []
+    if previous_ref is not None:
+        parts.append(f"Previous: bible read {previous_ref.label()}")
+    if next_ref is not None:
+        parts.append(f"Next: bible read {next_ref.label()}")
+    return " | ".join(parts)
 
 
 def compare_command(args: argparse.Namespace) -> int:

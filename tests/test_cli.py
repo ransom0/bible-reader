@@ -12,6 +12,8 @@ def test_main_without_args_prints_placeholder(capsys):
     assert "bible books" in output
     assert "bible John 3:16" in output
     assert "bible read John 3" in output
+    assert "bible next John 3" in output
+    assert "bible previous John 3" in output
     assert "bible search shepherd" in output
     assert "bible doctor" in output
     assert "bible chapters John" in output
@@ -98,6 +100,47 @@ def test_read_chapter_command(capsys):
     assert "John 3 (ASV)" in output
     assert "For God so loved the world" in output
     assert "world should be saved" in output
+
+
+
+
+def test_read_chapter_shows_navigation_hints(capsys):
+    assert main(["read", "John", "3"]) == 0
+
+    output = capsys.readouterr().out
+    assert "John 3 (ASV)" in output
+    assert "Previous: bible read Psalms 23" in output
+    assert "Next: bible read Romans 8" in output
+
+
+def test_next_chapter_command_reads_next_available_chapter(capsys):
+    assert main(["next", "John", "3"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Romans 8 (ASV)" in output
+    assert "Previous: bible read John 3" in output
+
+
+def test_previous_chapter_command_reads_previous_available_chapter(capsys):
+    assert main(["previous", "John", "3"]) == 0
+
+    output = capsys.readouterr().out
+    assert "Psalms 23 (ASV)" in output
+    assert "Next: bible read John 3" in output
+
+
+def test_next_chapter_command_returns_one_at_end(capsys):
+    assert main(["next", "Romans", "8"]) == 1
+
+    error = capsys.readouterr().err
+    assert "No next chapter is available after Romans 8" in error
+
+
+def test_previous_chapter_command_rejects_verse_reference(capsys):
+    assert main(["previous", "John", "3:16"]) == 2
+
+    error = capsys.readouterr().err
+    assert "previous expects a chapter reference" in error
 
 
 def test_lookup_missing_reference_reports_error(capsys):

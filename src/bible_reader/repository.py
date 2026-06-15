@@ -82,6 +82,43 @@ class BibleRepository:
         ).fetchone()
         return row is not None
 
+
+    def adjacent_chapter(
+        self,
+        *,
+        book_name: str,
+        chapter: int,
+        direction: str,
+    ) -> tuple[str, int] | None:
+        """Return the previous or next available chapter in canonical order.
+
+        ``direction`` must be ``"previous"`` or ``"next"``. The lookup is
+        based on chapters that actually exist in the selected database, so it
+        works with both the tiny fixture and a full imported ASV database.
+        """
+        if direction not in {"previous", "next"}:
+            raise ValueError("direction must be 'previous' or 'next'")
+
+        rows = self._connection.execute(
+            """
+            SELECT b.name AS book_name, v.chapter
+            FROM verses AS v
+            JOIN books AS b ON b.id = v.book_id
+            GROUP BY b.id, b.name, b.book_order, v.chapter
+            ORDER BY b.book_order, v.chapter
+            """
+        ).fetchall()
+        chapters = [(row["book_name"], int(row["chapter"])) for row in rows]
+        try:
+            index = chapters.index((book_name, chapter))
+        except ValueError:
+            return None
+
+        target_index = index - 1 if direction == "previous" else index + 1
+        if target_index < 0 or target_index >= len(chapters):
+            return None
+        return chapters[target_index]
+
     def get_verse(
         self,
         *,

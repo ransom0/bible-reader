@@ -37,6 +37,8 @@ bible --version
 bible books
 bible John 3:16
 bible read John 3
+bible next John 3
+bible previous John 3
 bible search shepherd
 bible compare John 3:16
 bible compare Romans 8:28-30 --versions ASV

@@ -133,3 +133,24 @@ def test_repository_reports_whether_chapter_exists():
         assert repository.chapter_exists(book_name="John", chapter=4) is False
     finally:
         connection.close()
+
+def test_repository_finds_adjacent_chapters_in_canonical_order():
+    connection = create_sample_connection()
+    try:
+        repository = BibleRepository(connection)
+        assert repository.adjacent_chapter(book_name="John", chapter=3, direction="previous") == ("Psalms", 23)
+        assert repository.adjacent_chapter(book_name="John", chapter=3, direction="next") == ("Romans", 8)
+        assert repository.adjacent_chapter(book_name="Psalms", chapter=23, direction="previous") is None
+        assert repository.adjacent_chapter(book_name="Romans", chapter=8, direction="next") is None
+    finally:
+        connection.close()
+
+
+def test_repository_adjacent_chapter_returns_none_for_missing_anchor():
+    connection = create_sample_connection()
+    try:
+        repository = BibleRepository(connection)
+        assert repository.adjacent_chapter(book_name="Genesis", chapter=1, direction="next") is None
+    finally:
+        connection.close()
+

@@ -290,3 +290,15 @@ Deliverables:
 - wrapped result text indented below each reference
 - clearer no-match guidance
 - regression tests for width-aware search rendering and result limits
+
+
+## Stage 21 — Reading navigation polish
+
+Adds chapter-oriented navigation helpers without encouraging isolated proof-texting.
+
+Deliverables:
+
+- `bible next <book> <chapter>`
+- `bible previous <book> <chapter>`
+- previous/next hints after chapter reads
+- tests against the sample fixture and repository navigation order
