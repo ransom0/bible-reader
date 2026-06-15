@@ -50,3 +50,34 @@ public-domain source in another format, then be converted into this shape.
 - Do not build SQL with string interpolation from source text or user input.
 - Use parameterized SQLite writes and reads.
 - Treat imported Bible/commentary data as untrusted text.
+
+## ASV USFX source import
+
+Stage 6 adds a local-file converter for ASV USFX XML source files. The intended
+upstream source is a public-domain ASV 1901 USFX/USFM distribution such as the
+ASV resources published by eBible.
+
+The converter does not download files automatically. Download the source
+manually, verify that it is ASV 1901/public domain, then import a local XML file:
+
+```bash
+bible import-usfx ~/Downloads/eng-asv.usfx --db ~/.local/share/bible-reader/bible.sqlite3
+```
+
+For normalized internal bundles, use:
+
+```bash
+bible import-bundle path/to/asv_bundle.json --db ~/.local/share/bible-reader/bible.sqlite3
+```
+
+Reading from an imported database is explicit for now:
+
+```bash
+bible --db ~/.local/share/bible-reader/bible.sqlite3 John 3:16
+bible --db ~/.local/share/bible-reader/bible.sqlite3 read Ps 23
+```
+
+The converter currently targets Scripture verse text plus paragraph/poetry
+formatting hooks. Footnotes, cross-references, headings, and superscriptions are
+intentionally left for later source-format passes so they can be modeled cleanly
+rather than jammed into verse text.

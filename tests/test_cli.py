@@ -108,3 +108,39 @@ def test_unknown_theme_reports_error(capsys):
 
     error = capsys.readouterr().err
     assert "Unknown theme: loud" in error
+
+
+def test_import_bundle_command_writes_sqlite_db_and_lookup_uses_db(tmp_path, capsys):
+    db_path = tmp_path / "bible.sqlite3"
+    bundle_path = "tests/fixtures/asv_sample_bundle.json"
+
+    assert main(["import-bundle", bundle_path, "--db", str(db_path)]) == 0
+    import_output = capsys.readouterr().out
+    assert "Imported translation bundle" in import_output
+
+    assert main(["--db", str(db_path), "--no-color", "John", "3:16"]) == 0
+    lookup_output = capsys.readouterr().out
+    assert "John 3:16 (ASV)" in lookup_output
+    assert "For God so loved the world" in lookup_output
+
+
+def test_import_bundle_requires_db(capsys):
+    assert main(["import-bundle", "tests/fixtures/asv_sample_bundle.json"]) == 2
+
+    error = capsys.readouterr().err
+    assert "requires --db" in error
+
+
+def test_import_usfx_command_writes_sqlite_db_and_read_uses_db(tmp_path, capsys):
+    db_path = tmp_path / "bible.sqlite3"
+    source_path = "tests/fixtures/asv_tiny.usfx"
+
+    assert main(["import-usfx", source_path, "--db", str(db_path)]) == 0
+    import_output = capsys.readouterr().out
+    assert "Imported ASV USFX source" in import_output
+
+    assert main(["--db", str(db_path), "--no-color", "read", "Ps", "23"]) == 0
+    lookup_output = capsys.readouterr().out
+    assert "Psalms 23 (ASV)" in lookup_output
+    assert "Jehovah is my shepherd;" in lookup_output
+    assert "I shall not want." in lookup_output

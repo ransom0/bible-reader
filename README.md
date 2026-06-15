@@ -29,11 +29,13 @@ bible books
 bible John 3:16
 bible read John 3
 bible --no-color Ps 23
+bible import-bundle tests/fixtures/asv_sample_bundle.json --db /tmp/bible.sqlite3
+bible --db /tmp/bible.sqlite3 John 3:16
 ```
 
 ## Current development fixture
 
-The app currently uses a tiny in-memory ASV fixture to prove the SQLite schema, reference parsing, and rendering layers before importing a full Bible text. The fixture currently includes Psalm 23:1-4, John 3:16-17, and Romans 8:28-30.
+The app currently uses a tiny in-memory ASV fixture by default to prove the SQLite schema, reference parsing, rendering, and import layers. The fixture currently includes Psalm 23:1-4, John 3:16-17, and Romans 8:28-30. Stage 6 adds explicit `--db` import/read commands for local ASV source or bundle files; a default installed user database will come later.
 
 ## Planning documents
 

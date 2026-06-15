@@ -124,6 +124,11 @@ def validate_translation_bundle(bundle: Mapping[str, Any]) -> None:
         seen_references.add(reference_key)
 
 
+def import_translation_bundle_file(connection: sqlite3.Connection, path: str | Path) -> None:
+    """Load and import a translation bundle JSON file into SQLite."""
+    import_translation_bundle(connection, load_translation_bundle(path))
+
+
 def import_translation_bundle(connection: sqlite3.Connection, bundle: Mapping[str, Any]) -> None:
     """Import a validated translation bundle into the application database."""
     validate_translation_bundle(bundle)

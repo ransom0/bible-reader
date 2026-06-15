@@ -1,0 +1,253 @@
+"""ASV source-file converters.
+
+The app imports normalized JSON bundles into SQLite. This module converts
+public-domain ASV source files into that internal bundle shape without executing
+or trusting downloaded data as code.
+"""
+
+from __future__ import annotations
+
+import xml.etree.ElementTree as ET
+from pathlib import Path
+from typing import Any
+
+from .importers import ImportErrorDetail, validate_translation_bundle
+
+
+ASV_TRANSLATION = {
+    "code": "ASV",
+    "name": "American Standard Version",
+    "language": "en",
+    "copyright": "Public domain: ASV 1901",
+}
+
+CANONICAL_BOOKS: tuple[tuple[str, int, str, str, int], ...] = (
+    ("GEN", 1, "Genesis", "OT", 1),
+    ("EXO", 2, "Exodus", "OT", 2),
+    ("LEV", 3, "Leviticus", "OT", 3),
+    ("NUM", 4, "Numbers", "OT", 4),
+    ("DEU", 5, "Deuteronomy", "OT", 5),
+    ("JOS", 6, "Joshua", "OT", 6),
+    ("JDG", 7, "Judges", "OT", 7),
+    ("RUT", 8, "Ruth", "OT", 8),
+    ("1SA", 9, "1 Samuel", "OT", 9),
+    ("2SA", 10, "2 Samuel", "OT", 10),
+    ("1KI", 11, "1 Kings", "OT", 11),
+    ("2KI", 12, "2 Kings", "OT", 12),
+    ("1CH", 13, "1 Chronicles", "OT", 13),
+    ("2CH", 14, "2 Chronicles", "OT", 14),
+    ("EZR", 15, "Ezra", "OT", 15),
+    ("NEH", 16, "Nehemiah", "OT", 16),
+    ("EST", 17, "Esther", "OT", 17),
+    ("JOB", 18, "Job", "OT", 18),
+    ("PSA", 19, "Psalms", "OT", 19),
+    ("PRO", 20, "Proverbs", "OT", 20),
+    ("ECC", 21, "Ecclesiastes", "OT", 21),
+    ("SNG", 22, "Song of Solomon", "OT", 22),
+    ("ISA", 23, "Isaiah", "OT", 23),
+    ("JER", 24, "Jeremiah", "OT", 24),
+    ("LAM", 25, "Lamentations", "OT", 25),
+    ("EZK", 26, "Ezekiel", "OT", 26),
+    ("DAN", 27, "Daniel", "OT", 27),
+    ("HOS", 28, "Hosea", "OT", 28),
+    ("JOL", 29, "Joel", "OT", 29),
+    ("AMO", 30, "Amos", "OT", 30),
+    ("OBA", 31, "Obadiah", "OT", 31),
+    ("JON", 32, "Jonah", "OT", 32),
+    ("MIC", 33, "Micah", "OT", 33),
+    ("NAM", 34, "Nahum", "OT", 34),
+    ("HAB", 35, "Habakkuk", "OT", 35),
+    ("ZEP", 36, "Zephaniah", "OT", 36),
+    ("HAG", 37, "Haggai", "OT", 37),
+    ("ZEC", 38, "Zechariah", "OT", 38),
+    ("MAL", 39, "Malachi", "OT", 39),
+    ("MAT", 40, "Matthew", "NT", 40),
+    ("MRK", 41, "Mark", "NT", 41),
+    ("LUK", 42, "Luke", "NT", 42),
+    ("JHN", 43, "John", "NT", 43),
+    ("ACT", 44, "Acts", "NT", 44),
+    ("ROM", 45, "Romans", "NT", 45),
+    ("1CO", 46, "1 Corinthians", "NT", 46),
+    ("2CO", 47, "2 Corinthians", "NT", 47),
+    ("GAL", 48, "Galatians", "NT", 48),
+    ("EPH", 49, "Ephesians", "NT", 49),
+    ("PHP", 50, "Philippians", "NT", 50),
+    ("COL", 51, "Colossians", "NT", 51),
+    ("1TH", 52, "1 Thessalonians", "NT", 52),
+    ("2TH", 53, "2 Thessalonians", "NT", 53),
+    ("1TI", 54, "1 Timothy", "NT", 54),
+    ("2TI", 55, "2 Timothy", "NT", 55),
+    ("TIT", 56, "Titus", "NT", 56),
+    ("PHM", 57, "Philemon", "NT", 57),
+    ("HEB", 58, "Hebrews", "NT", 58),
+    ("JAS", 59, "James", "NT", 59),
+    ("1PE", 60, "1 Peter", "NT", 60),
+    ("2PE", 61, "2 Peter", "NT", 61),
+    ("1JN", 62, "1 John", "NT", 62),
+    ("2JN", 63, "2 John", "NT", 63),
+    ("3JN", 64, "3 John", "NT", 64),
+    ("JUD", 65, "Jude", "NT", 65),
+    ("REV", 66, "Revelation", "NT", 66),
+)
+
+BOOK_BY_USFM = {code: (book_id, name, testament, order) for code, book_id, name, testament, order in CANONICAL_BOOKS}
+
+
+def asv_book_records() -> list[dict[str, Any]]:
+    """Return canonical book records for the ASV import bundle."""
+    return [
+        {"id": book_id, "name": name, "testament": testament, "order": order}
+        for _code, book_id, name, testament, order in CANONICAL_BOOKS
+    ]
+
+
+def convert_usfx_asv_to_bundle(path: str | Path) -> dict[str, Any]:
+    """Convert an ASV USFX XML source file into the internal bundle shape.
+
+    The converter accepts local XML files only. It ignores notes and headings for
+    now, preserves poetry line breaks when represented by line-level markers, and
+    records paragraph breaks as verse metadata.
+    """
+    source_path = Path(path)
+    try:
+        root = ET.parse(source_path).getroot()
+    except ET.ParseError as exc:
+        raise ImportErrorDetail(f"Invalid USFX XML source: {source_path}") from exc
+    except OSError as exc:
+        raise ImportErrorDetail(f"Could not read USFX source: {source_path}") from exc
+
+    state = _UsfxState()
+    _walk_usfx(root, state)
+    state.flush_verse()
+
+    bundle: dict[str, Any] = {
+        "translation": dict(ASV_TRANSLATION),
+        "books": asv_book_records(),
+        "verses": state.verses,
+    }
+    validate_translation_bundle(bundle)
+    return bundle
+
+
+class _UsfxState:
+    def __init__(self) -> None:
+        self.current_book: str | None = None
+        self.current_chapter: int | None = None
+        self.current_verse: int | None = None
+        self.current_text: list[str] = []
+        self.current_paragraph_break = True
+        self.pending_paragraph_break = True
+        self.verses: list[dict[str, Any]] = []
+
+    def set_book(self, code: str) -> None:
+        self.flush_verse()
+        normalized = code.strip().upper()
+        if normalized not in BOOK_BY_USFM:
+            raise ImportErrorDetail(f"Unsupported USFX book code: {code!r}.")
+        _book_id, name, _testament, _order = BOOK_BY_USFM[normalized]
+        self.current_book = name
+        self.current_chapter = None
+        self.pending_paragraph_break = True
+
+    def set_chapter(self, value: str) -> None:
+        self.flush_verse()
+        self.current_chapter = _positive_int(value, "chapter")
+        self.pending_paragraph_break = True
+
+    def start_verse(self, value: str) -> None:
+        self.flush_verse()
+        if self.current_book is None or self.current_chapter is None:
+            raise ImportErrorDetail("USFX verse appeared before book and chapter markers.")
+        self.current_verse = _positive_int(value, "verse")
+        self.current_text = []
+        self.current_paragraph_break = self.pending_paragraph_break
+        self.pending_paragraph_break = False
+
+    def mark_paragraph(self) -> None:
+        if self.current_verse is None or not _joined_text(self.current_text):
+            self.pending_paragraph_break = True
+        else:
+            self.current_text.append("\n")
+
+    def add_text(self, text: str | None) -> None:
+        if self.current_verse is None or text is None:
+            return
+        cleaned = " ".join(text.split())
+        if not cleaned:
+            return
+        if self.current_text and not self.current_text[-1].endswith((" ", "\n")):
+            self.current_text.append(" ")
+        self.current_text.append(cleaned)
+
+    def add_poetry_break(self) -> None:
+        if self.current_verse is not None and _joined_text(self.current_text):
+            self.current_text.append("\n")
+
+    def flush_verse(self) -> None:
+        if self.current_verse is None:
+            return
+        text = _joined_text(self.current_text)
+        if not text:
+            raise ImportErrorDetail(
+                f"Verse text must not be blank: {self.current_book} {self.current_chapter}:{self.current_verse}."
+            )
+        self.verses.append(
+            {
+                "book": self.current_book,
+                "chapter": self.current_chapter,
+                "verse": self.current_verse,
+                "text": text,
+                "paragraph_break_before": self.current_paragraph_break,
+            }
+        )
+        self.current_verse = None
+        self.current_text = []
+        self.current_paragraph_break = False
+
+
+def _walk_usfx(element: ET.Element, state: _UsfxState) -> None:
+    tag = _strip_namespace(element.tag)
+
+    if tag == "book":
+        code = element.attrib.get("id") or element.attrib.get("code") or ""
+        state.set_book(code)
+    elif tag == "c":
+        chapter = element.attrib.get("id") or element.attrib.get("number") or ""
+        state.set_chapter(chapter)
+    elif tag == "v":
+        verse = element.attrib.get("id") or element.attrib.get("number") or ""
+        state.start_verse(verse)
+        state.add_text(element.text)
+    elif tag in {"p", "pi", "m", "mi"}:
+        state.mark_paragraph()
+    elif tag in {"q", "q1", "q2", "q3", "q4", "b"}:
+        state.add_poetry_break()
+        state.add_text(element.text)
+    elif tag in {"f", "x", "note"}:
+        return
+    else:
+        state.add_text(element.text)
+
+    for child in element:
+        _walk_usfx(child, state)
+        if _strip_namespace(child.tag) not in {"f", "x", "note"}:
+            state.add_text(child.tail)
+
+
+def _joined_text(parts: list[str]) -> str:
+    lines = [" ".join(line.split()) for line in "".join(parts).splitlines()]
+    return "\n".join(line for line in lines if line).strip()
+
+
+def _strip_namespace(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1]
+
+
+def _positive_int(value: str, field_name: str) -> int:
+    try:
+        number = int(str(value).strip())
+    except ValueError as exc:
+        raise ImportErrorDetail(f"{field_name} must be a positive integer.") from exc
+    if number <= 0:
+        raise ImportErrorDetail(f"{field_name} must be a positive integer.")
+    return number

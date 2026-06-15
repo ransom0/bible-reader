@@ -92,7 +92,18 @@ Deliverables:
 - imported SQLite data or reproducible import command
 - validation checks for book/chapter/verse counts
 
-## Stage 6 — Search
+## Stage 6 — Full ASV source import
+
+Add a local-file source import path for public-domain ASV source files.
+
+Deliverables:
+
+- ASV USFX source converter
+- explicit SQLite import commands
+- tests for source conversion and database lookup
+- documentation for safe local source import
+
+## Stage 7 — Search
 
 Add simple and useful full-text search.
 
@@ -111,7 +122,7 @@ bible search "kingdom of God"
 bible search resurrection --book Romans
 ```
 
-## Stage 7 — Navigation helpers
+## Stage 8 — Navigation helpers
 
 Add reader-friendly navigation.
 
@@ -121,7 +132,7 @@ Deliverables:
 - `bible chapters <book>`
 - optional `random` or next/previous helpers
 
-## Stage 8 — Notes and bookmarks
+## Stage 9 — Notes and bookmarks
 
 Add local user study data.
 
@@ -133,7 +144,7 @@ Deliverables:
 - keep user data separate from Bible text
 - tests using temporary data dirs
 
-## Stage 9 — Comparison
+## Stage 10 — Comparison
 
 Prepare for multi-translation study.
 
@@ -143,7 +154,7 @@ Deliverables:
 - data model support for multiple versions
 - formatted side-by-side or stacked output
 
-## Stage 10 — TUI foundation
+## Stage 11 — TUI foundation
 
 Add a real terminal UI after the CLI is stable.
 
@@ -154,7 +165,7 @@ Deliverables:
 - search/navigation pane if feasible
 - groundwork for split-screen comparison
 
-## Stage 11 — Commentary and public-domain sources
+## Stage 12 — Commentary and public-domain sources
 
 Add non-Scripture corpora carefully.
 
@@ -164,7 +175,7 @@ Deliverables:
 - public-domain commentary/fathers import path
 - verse/passage linking without flattening everything into topical proof-texts
 
-## Stage 12 — Release/install/docs polish
+## Stage 13 — Release/install/docs polish
 
 Prepare for GitHub sharing and pipx installation.
 
@@ -192,3 +203,10 @@ Stage 4 introduces a dedicated rendering layer before the full ASV import. The f
 - Document source licensing and import safety rules.
 - Keep full ASV text import for a later, separately testable pass.
 
+
+## Stage 6 implementation note
+
+Stage 6 adds explicit local import commands instead of silently writing to user
+data directories. This keeps the early app safe and testable: data imports use
+parameterized SQLite writes, downloaded source files are treated as untrusted
+text/XML, and normal reading remains offline after import.
