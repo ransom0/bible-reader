@@ -180,3 +180,7 @@ Deliverables:
 ## Stage 2 implementation note
 
 Stage 2 proves the SQLite schema and repository layer with a tiny in-memory ASV fixture. The full ASV import is intentionally deferred until lookup, formatting, and validation behavior are stable.
+
+## Stage 4 implementation note
+
+Stage 4 introduces a dedicated rendering layer before the full ASV import. The fixture includes Psalm text with embedded line breaks so poetry indentation can be tested early. Paragraph/pericope spacing is modeled as verse metadata, not as hard-coded CLI behavior.

@@ -26,11 +26,14 @@ After editable install, the console command is available:
 bible --help
 bible --version
 bible books
+bible John 3:16
+bible read John 3
+bible --no-color Ps 23
 ```
 
 ## Current development fixture
 
-Stage 2 uses a tiny in-memory ASV fixture to prove the SQLite schema and repository layer before importing a full Bible text. The fixture currently includes John 3:16-17 and Romans 8:28-30.
+The app currently uses a tiny in-memory ASV fixture to prove the SQLite schema, reference parsing, and rendering layers before importing a full Bible text. The fixture currently includes Psalm 23:1-4, John 3:16-17, and Romans 8:28-30.
 
 ## Planning documents
 

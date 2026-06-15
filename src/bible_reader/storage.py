@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS verses (
     chapter INTEGER NOT NULL CHECK (chapter > 0),
     verse INTEGER NOT NULL CHECK (verse > 0),
     text TEXT NOT NULL,
+    paragraph_break_before INTEGER NOT NULL DEFAULT 0 CHECK (paragraph_break_before IN (0, 1)),
     PRIMARY KEY (translation_code, book_id, chapter, verse),
     FOREIGN KEY (translation_code) REFERENCES translations(code) ON DELETE CASCADE,
     FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
@@ -47,16 +48,21 @@ SAMPLE_TRANSLATION = (
 )
 
 SAMPLE_BOOKS = (
+    (19, "Psalms", "OT", 19),
     (43, "John", "NT", 43),
     (45, "Romans", "NT", 45),
 )
 
 SAMPLE_VERSES = (
-    ("ASV", 43, 3, 16, "For God so loved the world, that he gave his only begotten Son, that whosoever believeth on him should not perish, but have eternal life."),
-    ("ASV", 43, 3, 17, "For God sent not the Son into the world to judge the world; but that the world should be saved through him."),
-    ("ASV", 45, 8, 28, "And we know that to them that love God all things work together for good, even to them that are called according to his purpose."),
-    ("ASV", 45, 8, 29, "For whom he foreknew, he also foreordained to be conformed to the image of his Son, that he might be the firstborn among many brethren:"),
-    ("ASV", 45, 8, 30, "and whom he foreordained, them he also called: and whom he called, them he also justified: and whom he justified, them he also glorified."),
+    ("ASV", 19, 23, 1, "Jehovah is my shepherd;\nI shall not want.", 1),
+    ("ASV", 19, 23, 2, "He maketh me to lie down in green pastures;\nHe leadeth me beside still waters.", 0),
+    ("ASV", 19, 23, 3, "He restoreth my soul:\nHe guideth me in the paths of righteousness for his name's sake.", 0),
+    ("ASV", 19, 23, 4, "Yea, though I walk through the valley of the shadow of death,\nI will fear no evil; for thou art with me;\nThy rod and thy staff, they comfort me.", 0),
+    ("ASV", 43, 3, 16, "For God so loved the world, that he gave his only begotten Son, that whosoever believeth on him should not perish, but have eternal life.", 1),
+    ("ASV", 43, 3, 17, "For God sent not the Son into the world to judge the world; but that the world should be saved through him.", 0),
+    ("ASV", 45, 8, 28, "And we know that to them that love God all things work together for good, even to them that are called according to his purpose.", 1),
+    ("ASV", 45, 8, 29, "For whom he foreknew, he also foreordained to be conformed to the image of his Son, that he might be the firstborn among many brethren:", 0),
+    ("ASV", 45, 8, 30, "and whom he foreordained, them he also called: and whom he called, them he also justified: and whom he justified, them he also glorified.", 0),
 )
 
 
@@ -92,8 +98,8 @@ def seed_sample_asv(connection: sqlite3.Connection) -> None:
     )
     connection.executemany(
         """
-        INSERT OR IGNORE INTO verses (translation_code, book_id, chapter, verse, text)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT OR IGNORE INTO verses (translation_code, book_id, chapter, verse, text, paragraph_break_before)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
         SAMPLE_VERSES,
     )

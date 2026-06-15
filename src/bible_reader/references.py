@@ -37,6 +37,10 @@ class BibleReference:
 
 
 _BOOK_ALIASES = {
+    "psalms": "Psalms",
+    "psalm": "Psalms",
+    "ps": "Psalms",
+    "psa": "Psalms",
     "john": "John",
     "jn": "John",
     "jhn": "John",
@@ -79,7 +83,7 @@ def parse_reference(raw_reference: str) -> BibleReference:
     """Parse a user-entered Bible reference.
 
     Supported forms include ``John 3``, ``John 3:16``, ``Romans 8:28-30``,
-    ``Jn 3:16``, ``Rom 8``, and ``1 Cor 13``.
+    ``Jn 3:16``, ``Rom 8``, ``Ps 23``, and ``1 Cor 13``.
     """
     text = " ".join(raw_reference.strip().split())
     if not text:

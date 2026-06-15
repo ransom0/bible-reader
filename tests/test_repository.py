@@ -24,8 +24,8 @@ def test_sample_fixture_lists_books_in_order():
     finally:
         connection.close()
 
-    assert [book.name for book in books] == ["John", "Romans"]
-    assert [book.order for book in books] == [43, 45]
+    assert [book.name for book in books] == ["Psalms", "John", "Romans"]
+    assert [book.order for book in books] == [19, 43, 45]
 
 
 def test_repository_gets_single_verse_with_parameterized_lookup():
@@ -95,3 +95,20 @@ def test_repository_gets_verse_range_with_parameterized_lookup():
 
     assert [verse.verse for verse in verses] == [28, 29, 30]
     assert "work together for good" in verses[0].text
+
+
+def test_repository_preserves_paragraph_and_poetry_formatting_metadata():
+    connection = create_sample_connection()
+    try:
+        repository = BibleRepository(connection)
+        verses = repository.get_chapter(
+            translation_code="ASV",
+            book_name="Psalms",
+            chapter=23,
+        )
+    finally:
+        connection.close()
+
+    assert verses[0].paragraph_break_before is True
+    assert "\nI shall not want." in verses[0].text
+    assert verses[1].paragraph_break_before is False

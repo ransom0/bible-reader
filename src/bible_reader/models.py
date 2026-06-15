@@ -34,3 +34,4 @@ class Verse:
     chapter: int
     verse: int
     text: str
+    paragraph_break_before: bool = False

@@ -62,7 +62,7 @@ class BibleRepository:
         """Return one verse by reference, or None when it is not present."""
         row = self._connection.execute(
             """
-            SELECT v.translation_code, b.name AS book_name, v.chapter, v.verse, v.text
+            SELECT v.translation_code, b.name AS book_name, v.chapter, v.verse, v.text, v.paragraph_break_before
             FROM verses AS v
             JOIN books AS b ON b.id = v.book_id
             WHERE v.translation_code = ?
@@ -80,6 +80,7 @@ class BibleRepository:
             chapter=row["chapter"],
             verse=row["verse"],
             text=row["text"],
+            paragraph_break_before=bool(row["paragraph_break_before"]),
         )
 
     def get_verse_range(
@@ -94,7 +95,7 @@ class BibleRepository:
         """Return verses in an inclusive range sorted by verse number."""
         rows = self._connection.execute(
             """
-            SELECT v.translation_code, b.name AS book_name, v.chapter, v.verse, v.text
+            SELECT v.translation_code, b.name AS book_name, v.chapter, v.verse, v.text, v.paragraph_break_before
             FROM verses AS v
             JOIN books AS b ON b.id = v.book_id
             WHERE v.translation_code = ?
@@ -112,6 +113,7 @@ class BibleRepository:
                 chapter=row["chapter"],
                 verse=row["verse"],
                 text=row["text"],
+                paragraph_break_before=bool(row["paragraph_break_before"]),
             )
             for row in rows
         ]
@@ -126,7 +128,7 @@ class BibleRepository:
         """Return all fixture verses for a chapter sorted by verse number."""
         rows = self._connection.execute(
             """
-            SELECT v.translation_code, b.name AS book_name, v.chapter, v.verse, v.text
+            SELECT v.translation_code, b.name AS book_name, v.chapter, v.verse, v.text, v.paragraph_break_before
             FROM verses AS v
             JOIN books AS b ON b.id = v.book_id
             WHERE v.translation_code = ?
@@ -143,6 +145,7 @@ class BibleRepository:
                 chapter=row["chapter"],
                 verse=row["verse"],
                 text=row["text"],
+                paragraph_break_before=bool(row["paragraph_break_before"]),
             )
             for row in rows
         ]
